@@ -40,4 +40,3 @@ class Session(Base):
 
     # relationships
     user: Mapped["User"] = relationship(back_populates="sessions")
-    
