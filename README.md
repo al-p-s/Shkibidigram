@@ -8,7 +8,7 @@
 - [Git](https://git-scm.com/)
 - Python 3.12 (для генерации миграций локально)
 
-## Быстрый старт
+## Быстрый старт (Quick fuck)
 
 ```bash
 # 1. Клонировать
@@ -17,10 +17,18 @@
 # 2. Создать .env (шаблон тут же, ниже)
 # Отредактировать .env под себя
 
-# 3. Поднять контейнеры
+# 3. Установить некий Make, добавить его в PATH
+winget install GnuWin32.Make
+echo 'export PATH=$PATH:"/c/Program Files (x86)/GnuWin32/bin"' >> ~/.bashrc
+source ~/.bashrc
+# Проверь, брашки
+make --version
+
+
+# 4. Поднять контейнеры
 docker compose up -d
 
-# 4. Накатить миграции
+# 5. Накатить миграции
 make migrate
 ```
 
@@ -54,7 +62,7 @@ pip install -r requirements.txt
 
 # В .env временно поменять DATABASE_URL на localhost:5433
 # Потом:
-alembic revision --autogenerate -m "описание изменений"
+alembic revision --autogenerate -m "ОПИСАТЬ ЧЕ ИЗМЕНИЛ"
 
 # Вернуть DATABASE_URL обратно на db:5432
 # Запушить, сообщить нам, мы делаем make migrate (вообще лучше всегда после pull делать make migrate)
