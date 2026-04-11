@@ -61,27 +61,27 @@ alembic revision --autogenerate -m "описание изменений"
 ```
 ## .env
  
-Возьми эту структуру и заполни:
+Возьми эту структуру и заполни строки со словом 'YOUR':
  
 ```env
 # App
-APP_SECRET_KEY=your_random_secret_32_chars
+APP_SECRET_KEY=YOUR_random_secret_32_chars
 APP_DEBUG=true
 APP_HOST=0.0.0.0
 APP_PORT=8000
  
 # PostgreSQL
-POSTGRES_USER=your_user
-POSTGRES_PASSWORD=your_password
+POSTGRES_USER=YOUR_user
+POSTGRES_PASSWORD=YOUR_password
 POSTGRES_DB=shkibidigram
-DATABASE_URL=postgresql+asyncpg://your_user:your_password@db:5432/shkibidigram
+DATABASE_URL=postgresql+asyncpg://YOUR_user:YOUR_password@db:5432/shkibidigram
  
 # Redis
 REDIS_URL=redis://redis:6379/0
  
 # MinIO
-MINIO_ROOT_USER=your_minio_user
-MINIO_ROOT_PASSWORD=your_minio_password
+MINIO_ROOT_USER=YOUR_minio_user
+MINIO_ROOT_PASSWORD=YOUR_minio_password
 MINIO_ENDPOINT=minio:9000
 MINIO_BUCKET_MEDIA=media
 MINIO_BUCKET_AVATARS=avatars
