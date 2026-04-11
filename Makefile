@@ -24,7 +24,8 @@ build:
 	docker compose build
 
 up:
-	docker compose up -d
+	docker compose up -d --build
+	docker volume prune -f
 
 down:
 	docker compose down
@@ -33,10 +34,10 @@ logs:
 	docker compose logs -f app
 
 migrate:
-	alembic upgrade head
+	docker compose exec app //bin/bash -c "cd //app && alembic upgrade head"
 
 makemigrations:
-	alembic revision --autogenerate -m "$(msg)"
+	docker compose exec app //bin/bash -c "cd //app && alembic revision --autogenerate -m '$(msg)'"
 
 downgrade:
 	alembic downgrade -1
