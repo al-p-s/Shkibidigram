@@ -21,9 +21,9 @@
 winget install GnuWin32.Make
 echo 'export PATH=$PATH:"/c/Program Files (x86)/GnuWin32/bin"' >> ~/.bashrc
 source ~/.bashrc
+
 # Проверь, брашки
 make --version
-
 
 # 4. Поднять контейнеры
 docker compose up -d
