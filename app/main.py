@@ -35,8 +35,11 @@ app.add_middleware(
 )
 
 # routers — по мере реализации фич
-# from app.features.auth.router import router as auth_router
-# app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
+from app.features.auth.router import router as auth_router
+app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
+
+from app.features.users.router import router as users_router
+app.include_router(users_router, prefix="/api/v1/users", tags=["users"])
 
 
 @app.get("/health")
