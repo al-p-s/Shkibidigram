@@ -41,6 +41,18 @@ app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
 from app.features.users.router import router as users_router
 app.include_router(users_router, prefix="/api/v1/users", tags=["users"])
 
+from app.features.contacts.router import router as contacts_router
+app.include_router(contacts_router, prefix="/api/v1/contacts", tags=["contacts"])
+
+from app.features.chats.router import router as chats_router
+app.include_router(chats_router, prefix="/api/v1/chats", tags=["chats"])
+
+from app.features.messages.router import router as messages_router
+app.include_router(messages_router, prefix="/api/v1/chats", tags=["messages"])
+
+from app.features.realtime.router import router as realtime_router
+app.include_router(realtime_router, tags=["realtime"])
+
 
 @app.get("/health")
 async def health():

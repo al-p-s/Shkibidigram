@@ -8,6 +8,7 @@ from app.config import settings
 from app.features.users import service
 from app.features.users.models import User
 from app.features.users.schemas import UpdateProfileRequest, UserPublicResponse, UserResponse
+from app.features.realtime.online import get_online_statuses
 
 router = APIRouter()
 
@@ -61,3 +62,11 @@ async def search_user(
         raise HTTPException(status_code=400, detail="Provide username or email")
 
     return await service.search_by_username(username, db)
+
+
+@router.post("/online", response_model=dict[str, bool])
+async def check_online(
+    user_ids: list[str],
+    current_user: User = Depends(get_current_user),
+):
+    return await get_online_statuses(user_ids)
