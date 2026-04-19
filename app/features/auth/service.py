@@ -23,7 +23,6 @@ class AuthError(Exception):
 
 
 async def register(data: RegisterRequest, db: AsyncSession) -> TokenResponse:
-    # проверяем уникальность
     existing = await db.execute(
         select(User).where(
             (User.email == data.email) | (User.username == data.username)
@@ -39,7 +38,7 @@ async def register(data: RegisterRequest, db: AsyncSession) -> TokenResponse:
         display_name=data.display_name or data.username,
     )
     db.add(user)
-    await db.flush()  # получаем id до commit
+    await db.flush()
 
     tokens = _create_tokens(str(user.id))
     session = Session(
@@ -88,7 +87,6 @@ async def refresh(refresh_token: str, db: AsyncSession) -> TokenResponse:
     if not session:
         raise AuthError("Session not found", status_code=401)
 
-    # инвалидируем старую сессию (ломаем ноги)
     await db.delete(session)
 
     tokens = _create_tokens(user_id)
