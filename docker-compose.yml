@@ -42,6 +42,17 @@ services:
       - redis
       - minio
 
+  nginx:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: shkibidigram-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - app
+
 volumes:
   postgres_data:
   minio_data:

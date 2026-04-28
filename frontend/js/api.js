@@ -1,4 +1,4 @@
-const API = 'http://localhost:8000/api/v1';
+const API = '/api/v1';
 
 function getToken() { return localStorage.getItem('access_token'); }
 function setTokens(access, refresh) {
