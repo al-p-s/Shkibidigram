@@ -1,10 +1,78 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>App coming soon</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shkibidigram</title>
+  <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
+<div id="app">
 
+  <!-- TOPBAR -->
+  <div id="topbar">
+    <div class="logo">Shkibi<span>.</span></div>
+    <div class="topbar-spacer"></div>
+    <span id="current-user"></span>
+    <button class="btn-icon" id="logout-btn">logout</button>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div id="sidebar">
+    <div class="sidebar-header">
+      <span class="sidebar-title">Chats</span>
+      <button class="btn-new" id="new-chat-btn">+ New</button>
+    </div>
+    <div id="chat-list"></div>
+  </div>
+
+  <!-- MAIN -->
+  <div id="main">
+
+    <!-- empty state -->
+    <div id="empty-state">
+      <div class="big">://</div>
+      <div>select a chat or start a new one</div>
+    </div>
+
+    <!-- chat view -->
+    <div id="chat-view" style="display:none; flex-direction:column; flex:1; overflow:hidden;">
+      <div id="chat-header">
+        <div>
+          <div id="chat-header-name"></div>
+          <div id="chat-header-status"></div>
+        </div>
+        <div class="topbar-spacer"></div>
+        <div id="typing-indicator">typing...</div>
+      </div>
+
+      <div id="messages-wrap"></div>
+
+      <div id="input-area">
+        <textarea id="msg-input" placeholder="Type a message... (Enter to send)" rows="1"></textarea>
+        <button id="send-btn">SEND</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- NEW CHAT MODAL -->
+<div class="modal-overlay" id="new-chat-modal">
+  <div class="modal">
+    <h3>New direct chat</h3>
+    <input id="modal-username" type="text" placeholder="Enter username...">
+    <div class="modal-msg" id="modal-msg"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="modal-cancel">Cancel</button>
+      <button class="btn-primary" id="modal-start">Start chat</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/ws.js"></script>
+<script src="js/chats.js"></script>
+<script src="js/messages.js"></script>
 </body>
 </html>
