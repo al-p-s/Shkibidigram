@@ -30,6 +30,9 @@ up:
 down:
 	docker compose down
 
+destroy:
+	docker compose down -v
+
 logs:
 	docker compose logs -f app
 
