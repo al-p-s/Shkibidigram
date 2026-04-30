@@ -10,7 +10,6 @@ minio_client = Minio(
     secure=False,
 )
 
-
 def init_buckets() -> None:
     for bucket in [settings.minio_bucket_media, settings.minio_bucket_avatars]:
         if not minio_client.bucket_exists(bucket):
@@ -18,10 +17,10 @@ def init_buckets() -> None:
 
 
 async def upload_file(
-    bucket: str,
-    object_name: str,
-    data: bytes,
-    content_type: str = "application/octet-stream",
+        bucket: str,
+        object_name: str,
+        data: bytes,
+        content_type: str = "application/octet-stream",
 ) -> str:
     import io
 
@@ -33,6 +32,24 @@ async def upload_file(
         content_type=content_type,
     )
     return f"http://{settings.minio_endpoint}/{bucket}/{object_name}"
+
+
+def get_file_stream(bucket: str, object_name: str):
+    response = minio_client.get_object(bucket, object_name)
+    content_type = response.headers.get("Content-Type", "application/octet-stream")
+
+    def chunk_generator():
+        try:
+            while True:
+                chunk = response.read(64 * 1024)
+                if not chunk:
+                    break
+                yield chunk
+        finally:
+            response.close()
+            response.release_conn()
+
+    return chunk_generator(), content_type
 
 
 async def delete_file(bucket: str, object_name: str) -> None:
