@@ -34,12 +34,17 @@ services:
       - minio
 
   nginx:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
+    image: jonasal/nginx-certbot:latest
     restart: unless-stopped
     ports:
       - "80:80"
+      - "443:443"
+    environment:
+      - CERTBOT_EMAIL=olegspampochta@gmail.com
+    volumes:
+      - ./frontend/nginx.prod.conf:/etc/nginx/user_conf.d/default.conf:ro
+      - ./nginx/letsencrypt:/etc/letsencrypt
+      - ./frontend:/usr/share/nginx/html:ro
     depends_on:
       - app
 
