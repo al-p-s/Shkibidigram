@@ -37,6 +37,7 @@ const api = {
     me:     ()       => request('GET', '/users/me'),
     update: (body)   => request('PATCH', '/users/me', body),
     search: (username) => request('GET', `/users/search?username=${username}`),
+    getProfile: (userId) => request('GET', `/users/${userId}/public`),
   },
   contacts: {
     list:   ()   => request('GET', '/contacts/'),

@@ -25,7 +25,6 @@ build:
 
 up:
 	docker compose up -d --build
-	docker volume prune -f
 
 down:
 	docker compose down
