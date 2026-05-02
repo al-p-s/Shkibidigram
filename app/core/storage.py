@@ -17,10 +17,10 @@ def init_buckets() -> None:
 
 
 async def upload_file(
-        bucket: str,
-        object_name: str,
-        data: bytes,
-        content_type: str = "application/octet-stream",
+    bucket: str,
+    object_name: str,
+    data: bytes,
+    content_type: str = "application/octet-stream",
 ) -> str:
     import io
 

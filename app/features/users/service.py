@@ -54,3 +54,9 @@ async def search_by_username(username: str, db: AsyncSession) -> User | None:
         select(User).where(User.username == username, User.is_active == True)  # noqa
     )
     return result.scalar_one_or_none()
+
+async def get_public_profile(user_id: str, db: AsyncSession) -> User | None:
+    user = await db.get(User, uuid.UUID(user_id))
+    if not user:
+        raise UserError("User not found", 404)
+    return user

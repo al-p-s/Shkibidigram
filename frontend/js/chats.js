@@ -91,7 +91,6 @@ async function openChat(chatId) {
     document.getElementById('chat-header-name').style.cursor = 'pointer';
     document.getElementById('chat-header-name').title = 'Click to view profile';
 
-// Добавляем обработчик клика на имя в шапке чата
     document.getElementById('chat-header-name').onclick = () => {
         if (chat.type === 'direct') {
             const other = chat.members.find(m => m.user.id !== currentUser.id);
@@ -101,7 +100,6 @@ async function openChat(chatId) {
         }
     };
 
-// Для групповых чатов можно просто не добавлять обработчик
     if (chat.type === 'group') {
         document.getElementById('chat-header-name').style.cursor = 'default';
         document.getElementById('chat-header-name').title = '';
@@ -111,7 +109,6 @@ async function openChat(chatId) {
 
 function onPresence(event) {
     const dot = document.getElementById(`dot-${currentChatId}`);
-    // найдём чат с этим юзером
     chats.forEach(chat => {
         if (chat.type === 'direct') {
             const other = chat.members.find(m => m.user.id === event.user_id);
@@ -138,7 +135,6 @@ function onNewMessage(event) {
     }
 }
 
-// NEW CHAT MODAL
 document.getElementById('new-chat-btn').addEventListener('click', () => {
     document.getElementById('new-chat-modal').classList.add('open');
 });
