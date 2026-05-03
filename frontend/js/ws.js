@@ -8,7 +8,10 @@ function wsConnect() {
   const token = localStorage.getItem('access_token');
   if (!token) return;
 
-  socket = new WebSocket(`ws://localhost:8000/ws?token=${token}`);
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsUrl = `${protocol}//${window.location.host}/ws?token=${token}`;
+
+  socket = new WebSocket(wsUrl);
 
   socket.onopen = () => {
     console.log('[ws] connected');
