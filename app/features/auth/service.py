@@ -1,4 +1,5 @@
 import hashlib
+import secrets
 import uuid
 from datetime import datetime, timedelta, timezone
 
@@ -41,12 +42,7 @@ async def register(data: RegisterRequest, db: AsyncSession) -> TokenResponse:
     await db.flush()
 
     tokens = _create_tokens(str(user.id))
-    session = Session(
-        user_id=user.id,
-        token_hash=_hash_token(tokens.refresh_token),
-        expires_at=datetime.now(timezone.utc) + timedelta(days=30),
-    )
-    db.add(session)
+    await _create_session(user.id, tokens.refresh_token, db)
     await db.commit()
 
     return tokens
@@ -63,12 +59,7 @@ async def login(data: LoginRequest, db: AsyncSession) -> TokenResponse:
         raise AuthError("Account is disabled", status_code=403)
 
     tokens = _create_tokens(str(user.id))
-    session = Session(
-        user_id=user.id,
-        token_hash=_hash_token(tokens.refresh_token),
-        expires_at=datetime.now(timezone.utc) + timedelta(days=30),
-    )
-    db.add(session)
+    await _create_session(user.id, tokens.refresh_token, db)
     await db.commit()
 
     return tokens
@@ -90,12 +81,7 @@ async def refresh(refresh_token: str, db: AsyncSession) -> TokenResponse:
     await db.delete(session)
 
     tokens = _create_tokens(user_id)
-    new_session = Session(
-        user_id=uuid.UUID(user_id),
-        token_hash=_hash_token(tokens.refresh_token),
-        expires_at=datetime.now(timezone.utc) + timedelta(days=30),
-    )
-    db.add(new_session)
+    await _create_session(uuid.UUID(user_id), tokens.refresh_token, db)
     await db.commit()
 
     return tokens
@@ -110,6 +96,23 @@ async def logout(refresh_token: str, db: AsyncSession) -> None:
     if session:
         await db.delete(session)
         await db.commit()
+
+
+async def _create_session(user_id: uuid.UUID, refresh_token: str, db: AsyncSession) -> Session:
+    for attempt in range(5):
+        try:
+            token_hash = _hash_token(refresh_token + secrets.token_hex(8))
+            session = Session(
+                user_id=user_id,
+                token_hash=token_hash,
+                expires_at=datetime.now(timezone.utc) + timedelta(days=30),
+            )
+            db.add(session)
+            await db.flush()
+            return session
+        except Exception:
+            await db.rollback()
+    raise AuthError("Failed to create session", status_code=500)
 
 
 def _create_tokens(user_id: str) -> TokenResponse:

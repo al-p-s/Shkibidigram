@@ -12,8 +12,12 @@ minio_client = Minio(
 
 def init_buckets() -> None:
     for bucket in [settings.minio_bucket_media, settings.minio_bucket_avatars]:
-        if not minio_client.bucket_exists(bucket):
-            minio_client.make_bucket(bucket)
+        try:
+            if not minio_client.bucket_exists(bucket):
+                minio_client.make_bucket(bucket)
+        except S3Error as e:
+            if e.code != "BucketAlreadyOwnedByYou":
+                raise
 
 
 async def upload_file(

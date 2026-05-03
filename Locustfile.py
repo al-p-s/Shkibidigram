@@ -14,7 +14,7 @@ class MessengerUser(HttpUser):
     wait_time = between(1, 3)
     host = "http://localhost:8000"
 
-    # ── setup ────────────────────────────────────────────────────────────────
+    # ── setup ──
 
     def on_start(self):
         self.token = None
@@ -24,6 +24,7 @@ class MessengerUser(HttpUser):
         self.last_message_id = None
         self.other_user_id = None
         self.bot_token = None
+        self.contact_added = False
 
         suffix = random_str()
         res = self.client.post("/api/v1/auth/register", json={
@@ -137,29 +138,19 @@ class MessengerUser(HttpUser):
             name="/api/v1/users/search?username GET",
         )
 
-    @task(1)
-    def search_by_phone(self):
-        """req 3 — поиск по номеру телефона."""
-        if not self.token:
-            return
-        phone = "7" + ''.join(random.choices(string.digits, k=10))
-        self.client.get(
-            f"/api/v1/users/search?phone={phone}",
-            headers=self.headers,
-            name="/api/v1/users/search?phone GET",
-        )
-
     # ── req 4: контакты (≤500 мс) ───────────────────────────────────────────
 
     @task(1)
     def add_contact(self):
-        if not self.token or not self.other_user_id:
+        if not self.token or not self.other_user_id or self.contact_added:
             return
-        self.client.post(
+        res = self.client.post(
             f"/api/v1/contacts/{self.other_user_id}",
             headers=self.headers,
             name="/api/v1/contacts/[id] POST",
         )
+        if res.status_code == 201:
+            self.contact_added = True
 
     @task(1)
     def get_contacts(self):
@@ -174,9 +165,9 @@ class MessengerUser(HttpUser):
         if not self.token or not self.other_user_id:
             return
         self.client.get(
-            f"/api/v1/users/{self.other_user_id}",
+            f"/api/v1/users/{self.other_user_id}/public",
             headers=self.headers,
-            name="/api/v1/users/[id] GET",
+            name="/api/v1/users/[id]/public GET",
         )
 
     # ── req 6: блокировка ────────────────────────────────────────────────────
@@ -189,14 +180,14 @@ class MessengerUser(HttpUser):
         if not uid:
             return
         self.client.post(
-            f"/api/v1/users/{uid}/block",
+            f"/api/v1/contacts/blocked/{uid}",
             headers=self.headers,
-            name="/api/v1/users/[id]/block POST",
+            name="/api/v1/contacts/blocked/[id] POST",
         )
         self.client.delete(
-            f"/api/v1/users/{uid}/block",
+            f"/api/v1/contacts/blocked/{uid}",
             headers=self.headers,
-            name="/api/v1/users/[id]/block DELETE",
+            name="/api/v1/contacts/blocked/[id] DELETE",
         )
 
     # ── req 7: отправка сообщений (≤300 мс) ─────────────────────────────────
@@ -223,7 +214,7 @@ class MessengerUser(HttpUser):
         # читаем сообщение от лица бота-получателя
         bot_headers = {"Authorization": f"Bearer {self.bot_token}"}
         self.client.post(
-            f"/api/v1/chats/{self.chat_id}/messages/{self.last_message_id}/read",
+            f"/api/v1/chats/messages/{self.last_message_id}/read",
             headers=bot_headers,
             name="/api/v1/chats/[id]/messages/[id]/read POST",
         )
@@ -252,7 +243,7 @@ class MessengerUser(HttpUser):
         if not self.chat_id or not self.last_message_id or not self.token:
             return
         self.client.patch(
-            f"/api/v1/messages/{self.last_message_id}",
+            f"/api/v1/chats/messages/{self.last_message_id}",
             json={"content": f"edited {random_str()}"},
             headers=self.headers,
             name="/api/v1/messages/[id] PATCH",
@@ -275,7 +266,7 @@ class MessengerUser(HttpUser):
             return
         msg_id = res.json().get("id")
         self.client.delete(
-            f"/api/v1/messages/{msg_id}/all",
+            f"/api/v1/chats/messages/{msg_id}/all",
             headers=self.headers,
             name="/api/v1/messages/[id]/all DELETE",
         )
@@ -296,7 +287,7 @@ class MessengerUser(HttpUser):
             return
         msg_id = res.json().get("id")
         self.client.delete(
-            f"/api/v1/messages/{msg_id}/me",
+            f"/api/v1/chats/messages/{msg_id}/me",
             headers=self.headers,
             name="/api/v1/messages/[id]/me DELETE",
         )
@@ -379,6 +370,7 @@ class StressUser(HttpUser):
         self.token = None
         self.headers = {}
         self.chat_id = None
+        self.contact_added = False
 
         suffix = random_str()
         res = self.client.post("/api/v1/auth/register", json={
