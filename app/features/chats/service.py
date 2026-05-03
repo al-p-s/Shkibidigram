@@ -155,3 +155,20 @@ async def add_member(chat_id: str, user_id: str, new_user_id: str, db: AsyncSess
         .options(selectinload(Chat.members).selectinload(ChatMember.user))
     )
     return result.scalar_one()
+
+async def update_chat_avatar(chat_id: str, user_id: str, avatar_url: str, db: AsyncSession) -> Chat:
+    chat = await get_chat(chat_id, user_id, db)
+
+    member = next((m for m in chat.members if str(m.user_id) == user_id), None)
+    if not member or member.role != "owner":
+        raise ChatError("Not enough permissions", status_code=403)
+
+    chat.avatar_url = avatar_url
+    await db.commit()
+
+    result = await db.execute(
+        select(Chat)
+        .where(Chat.id == uuid.UUID(chat_id))
+        .options(selectinload(Chat.members).selectinload(ChatMember.user))
+    )
+    return result.scalar_one()

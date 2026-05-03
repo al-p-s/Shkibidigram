@@ -8,9 +8,13 @@ async function openUserProfile(userId) {
             if (member) userData = member.user;
         }
 
+        if (!userData && typeof contacts !== 'undefined') {
+            const contact = contacts.find(c => c.contact.id === userId);
+            if (contact) userData = contact.contact;
+        }
+
         if (!userData) {
-            console.log('User not found in local cache');
-            return;
+            userData = await api.users.getProfile(userId);
         }
 
         document.getElementById('user-profile-username').value = userData.username || 'N/A';
@@ -19,7 +23,7 @@ async function openUserProfile(userId) {
 
         const avatarImg = document.getElementById('user-profile-avatar-img');
         if (avatarImg) {
-            if (userData.avatar_url && userData.avatar_url !== 'null' && userData.avatar_url !== 'undefined' && userData.avatar_url !== '') {
+            if (userData.avatar_url && !['null', 'undefined', ''].includes(userData.avatar_url)) {
                 avatarImg.src = `${API}/users/${userId}/avatar?t=${Date.now()}`;
                 avatarImg.onerror = () => {
                     const initials = (userData.username || 'U').substring(0, 2).toUpperCase();
@@ -33,13 +37,23 @@ async function openUserProfile(userId) {
 
         const addBtn = document.getElementById('user-profile-add-contact');
         if (addBtn) {
-            if (userId !== currentUser.id) {
-                addBtn.style.display = 'block';
-                addBtn.replaceWith(addBtn.cloneNode(true));
-                const newAddBtn = document.getElementById('user-profile-add-contact');
-                newAddBtn.addEventListener('click', () => addContact(userId));
-            } else {
+            if (userId === currentUser.id) {
                 addBtn.style.display = 'none';
+            } else {
+                const alreadyContact = typeof contacts !== 'undefined'
+                    && contacts.some(c => c.contact.id === userId);
+
+                if (alreadyContact) {
+                    addBtn.style.display = 'none';
+                } else {
+                    addBtn.style.display = 'block';
+                    addBtn.disabled = false;
+                    addBtn.textContent = 'Add to contacts';
+                    // Клонируем чтобы снять старые слушатели
+                    const fresh = addBtn.cloneNode(true);
+                    addBtn.replaceWith(fresh);
+                    fresh.addEventListener('click', () => addContact(userId, fresh));
+                }
             }
         }
 
@@ -50,20 +64,19 @@ async function openUserProfile(userId) {
     }
 }
 
-async function addContact(userId) {
+async function addContact(userId, btn) {
     const msgEl = document.getElementById('user-profile-msg');
-    const btn = document.getElementById('user-profile-add-contact');
     btn.disabled = true;
     btn.textContent = 'Adding...';
 
     try {
-        await api.contacts.add(userId);
+        const newContact = await api.contacts.add(userId);
+       if (typeof contacts !== 'undefined') contacts.push(newContact);
         if (msgEl) {
             msgEl.textContent = 'Contact added!';
             msgEl.className = 'modal-msg success show';
         }
         btn.textContent = '✓ Added';
-        btn.disabled = true;
     } catch (error) {
         if (msgEl) {
             msgEl.textContent = error.message;

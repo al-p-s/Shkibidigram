@@ -19,10 +19,14 @@
 
     <div id="sidebar">
         <div class="sidebar-header">
-            <span class="sidebar-title">Chats</span>
+            <div class="sidebar-tabs">
+                <button class="sidebar-tab active" data-tab="chats">Chats</button>
+                <button class="sidebar-tab" data-tab="contacts">Contacts</button>
+            </div>
             <button class="btn-new" id="new-chat-btn">+ New</button>
         </div>
         <div id="chat-list"></div>
+        <div id="contact-list" style="display:none;"></div>
     </div>
 
     <div id="main">
@@ -44,8 +48,10 @@
             <div id="messages-wrap"></div>
 
             <div id="input-area">
-                <textarea id="msg-input" placeholder="Type a message... (Enter to send)" rows="1"></textarea>
-                <button id="send-btn">SEND</button>
+                <div id="input-row">
+                    <textarea id="msg-input" placeholder="Type a message... (Enter to send)" rows="1"></textarea>
+                    <button id="send-btn">SEND</button>
+                </div>
             </div>
         </div>
     </div>
@@ -144,11 +150,82 @@
         <div id="user-profile-msg" class="modal-msg"></div>
     </div>
 </div>
+
+<div class="modal-overlay" id="chat-type-modal">
+    <div class="modal">
+        <h3>New chat</h3>
+        <div class="modal-actions">
+            <button class="btn-secondary" id="type-direct">Direct</button>
+            <button class="btn-secondary" id="type-group">Group</button>
+        </div>
+        <button class="btn-secondary" id="type-cancel">Cancel</button>
+    </div>
+</div>
+
+<div class="modal-overlay" id="new-group-modal">
+    <div class="modal">
+        <h3>New group chat</h3>
+        <input id="group-name-input" type="text" placeholder="Group name...">
+        <div class="group-members-label">Select members</div>
+        <div id="group-contacts-list"></div>
+        <div id="group-selected-count" class="group-selected-count">0 selected</div>
+        <div id="group-msg" class="modal-msg"></div>
+        <div class="modal-actions">
+            <button class="btn-secondary" id="group-cancel">Cancel</button>
+            <button class="btn-primary" id="group-create">Create group</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="group-info-modal">
+    <div class="modal profile-modal">
+        <h3 id="group-info-name"></h3>
+        <div class="profile-avatar" id="group-info-avatar-section">
+            <img id="group-info-avatar-img" src="" alt="avatar" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid var(--accent);background:var(--surface2);">
+            <button class="btn-avatar" id="group-avatar-upload-btn" style="display:none;">Change avatar</button>
+            <input type="file" id="group-avatar-input" accept="image/jpeg,image/png" style="display:none;">
+        </div>
+        <div id="group-info-view">
+            <div class="group-members-label" id="group-info-count"></div>
+        </div>
+        <div id="group-info-edit" style="display:none;">
+            <div class="profile-field">
+                <label>Group name</label>
+                <input type="text" id="group-info-name-input">
+            </div>
+            <div id="group-info-edit-msg" class="modal-msg"></div>
+        </div>
+        <div id="group-info-members" style="max-height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:2px;"></div>
+        <div class="modal-actions">
+            <button class="btn-secondary" id="group-info-close">Close</button>
+            <button class="btn-primary" id="group-info-edit-btn">Edit</button>
+            <button class="btn-primary" id="group-info-save-btn" style="display:none;">Save</button>
+            <button class="btn-primary" id="group-info-add-members">Add members</button>
+            <button class="btn-danger" id="group-info-leave">Leave chat</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="add-members-modal">
+    <div class="modal">
+        <h3>Add members</h3>
+        <div class="group-members-label">Select from contacts</div>
+        <div id="add-members-list" style="max-height:260px;overflow-y:auto;border:1px solid var(--border);border-radius:2px;padding:6px;"></div>
+        <div id="add-members-selected" class="group-selected-count">0 selected</div>
+        <div id="add-members-msg" class="modal-msg"></div>
+        <div class="modal-actions">
+            <button class="btn-secondary" id="add-members-cancel">Back</button>
+            <button class="btn-primary" id="add-members-confirm">Add</button>
+        </div>
+    </div>
+</div>
+
 <script src="js/api.js"></script>
 <script src="js/ws.js"></script>
 <script src="js/chats.js"></script>
 <script src="js/messages.js"></script>
 <script src="js/profile.js"></script>
 <script src="js/some_profile.js"></script>
+<script src="js/contacts.js"></script>
 </body>
 </html>
