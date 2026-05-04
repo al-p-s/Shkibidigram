@@ -716,6 +716,11 @@ html, body {
     display: block;
 }
 
+.burger-btn,
+#burger-btn {
+    display: none;
+}
+
 
 /* МОБИЛЬНАЯ АДАПТАЦИЯ */
 
@@ -807,6 +812,11 @@ html, body {
         border: none;
         cursor: pointer;
         gap: 4px;
+    }
+
+    .burger-btn,
+    #burger-btn {
+        display: flex;
     }
 
     .burger-btn span {
