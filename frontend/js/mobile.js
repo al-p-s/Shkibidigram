@@ -1,8 +1,24 @@
 let isMobile = window.innerWidth <= 768;
 let isSidebarOpen = false;
 
+function fixMobileKeyboard() {
+    const msgInput = document.getElementById('msg-input');
+    if (!msgInput) return;
+
+    msgInput.addEventListener('focus', () => {
+        setTimeout(() => {
+            const messagesWrap = document.getElementById('messages-wrap');
+            if (messagesWrap) {
+                messagesWrap.scrollTop = messagesWrap.scrollHeight;
+            }
+            msgInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 300);
+    });
+}
+
 function initMobile() {
     checkMobile();
+    fixMobileKeyboard();
     window.addEventListener('resize', () => {
         checkMobile();
         if (window.innerWidth > 768 && isSidebarOpen) {

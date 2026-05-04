@@ -740,9 +740,17 @@ html, body {
     }
 
     #app {
+        height: -webkit-fill-available;
+        min-height: 100vh;
+        min-height: -webkit-fill-available;
+
         grid-template-columns: 1fr;
         grid-template-rows: var(--topbar) 1fr;
         transition: transform 0.3s ease;
+    }
+
+    html, body {
+        height: -webkit-fill-available;
     }
 
     #sidebar {
@@ -922,6 +930,12 @@ html, body {
 
     .modal-overlay {
         -webkit-overflow-scrolling: touch;
+    }
+
+    @supports (padding: max(0px)) {
+        #input-area {
+            padding-bottom: max(12px, env(safe-area-inset-bottom));
+        }
     }
 }
 
