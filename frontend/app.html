@@ -3,13 +3,21 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover, interactive-widget=resizes-content">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0a0a0f">
     <title>Shkibidigram</title>
     <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
 <div id="app">
     <div id="topbar">
+        <button class="burger-btn" id="burger-btn">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
         <div class="logo">Shkibi<span>.</span></div>
         <div class="topbar-spacer"></div>
         <span id="current-user"></span>
@@ -49,6 +57,7 @@
             </div>
         </div>
     </div>
+    <div class="mobile-overlay" id="mobile-overlay"></div>
 </div>
 
 <div class="modal-overlay" id="new-chat-modal">
@@ -150,5 +159,6 @@
 <script src="js/messages.js"></script>
 <script src="js/profile.js"></script>
 <script src="js/some_profile.js"></script>
+<script src="js/mobile.js"></script>
 </body>
 </html>
