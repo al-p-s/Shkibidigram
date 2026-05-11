@@ -29,6 +29,11 @@ async function initApp() {
 
 async function loadChats() {
     chats = await api.chats.list();
+    chats.sort((a, b) => {
+        const ta = a.last_message_at ? new Date(a.last_message_at) : new Date(a.created_at);
+        const tb = b.last_message_at ? new Date(b.last_message_at) : new Date(b.created_at);
+        return tb - ta;
+    });
     renderChatList();
 }
 
@@ -67,6 +72,10 @@ function renderChatList() {
                 <div class="chat-name">${name}</div>
                 <div class="chat-preview">${chat.type === 'direct' ? 'direct' : 'group · ' + chat.members.length}</div>
             </div>
+            ${chat.unread_count > 0
+                ? `<div class="unread-badge">${chat.unread_count > 99 ? '99+' : chat.unread_count}</div>`
+                : ''
+            }
         `;
         item.addEventListener('click', () => openChat(chat.id));
         list.appendChild(item);
@@ -80,6 +89,10 @@ function getChatName(chat) {
 }
 
 async function openChat(chatId) {
+    const chatToReset = chats.find(c => c.id === chatId);
+    if (chatToReset) chatToReset.unread_count = 0;
+    renderChatList();
+
     currentChatId = chatId;
     document.querySelectorAll('.chat-item').forEach(el => {
         el.classList.toggle('active', el.dataset.id === chatId);
@@ -134,15 +147,28 @@ function onTyping(event) {
 }
 
 function onNewMessage(event) {
+    const chat = chats.find(c => c.id === event.message.chat_id);
+    if (chat) {
+        chat.last_message_at = event.message.created_at;
+        chats.sort((a, b) => {
+            const ta = a.last_message_at ? new Date(a.last_message_at) : new Date(a.created_at);
+            const tb = b.last_message_at ? new Date(b.last_message_at) : new Date(b.created_at);
+            return tb - ta;
+        });
+    }
+
     if (event.message.chat_id === currentChatId) {
         appendMessage(event.message, false);
         scrollBottom();
-
-        // Если сообщение чужое — сразу отмечаем прочитанным
         if (event.message.sender_id !== currentUser.id) {
             wsSend({ type: 'message.read', message_id: event.message.id });
         }
+    } else {
+        if (chat && event.message.sender_id !== currentUser.id) {
+            chat.unread_count = (chat.unread_count || 0) + 1;
+        }
     }
+    renderChatList();
 }
 
 document.getElementById('modal-cancel').addEventListener('click', () => {
