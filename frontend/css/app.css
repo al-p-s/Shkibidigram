@@ -307,6 +307,15 @@ html, body {
     border-color: var(--accent);
 }
 
+.msg-row.mine .bubble-time,
+.msg-row.mine .bubble-status {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.msg-row.mine .bubble-status.read {
+    color: #fff;
+}
+
 .bubble {
     background: var(--surface);
     border: 1px solid var(--border);

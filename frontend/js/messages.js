@@ -6,12 +6,25 @@ async function loadMessages(chatId) {
         const msgs = await api.messages.list(chatId);
         msgs.reverse().forEach(m => appendMessage(m, true));
         scrollBottom();
+
+        // Отмечаем ВСЕ непрочитанные входящие
+        msgs.forEach(m => {
+            if (m.sender_id !== currentUser.id) {
+                const alreadyRead = m.statuses?.some(s =>
+                    s.user_id === currentUser.id && s.status === 'read'
+                );
+                if (!alreadyRead) {
+                    wsSend({ type: 'message.read', message_id: m.id });
+                }
+            }
+        });
     } catch {}
 }
 
 function appendMessage(msg, initial = false) {
     const wrap = document.getElementById('messages-wrap');
     const isMine = msg.sender_id === currentUser.id;
+    const isRead = msg.statuses?.some(s => s.status === 'read');
 
     const time = new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
@@ -31,7 +44,7 @@ function appendMessage(msg, initial = false) {
             <div class="bubble-meta">
                 <span class="bubble-sender">${senderName}</span>
                 <span class="bubble-time">${time}</span>
-                ${isMine ? `<span class="bubble-status" id="status-${msg.id}">·</span>` : ''}
+                ${isMine ? `<span class="bubble-status ${isRead ? 'read' : ''}" id="status-${msg.id}">${isRead ? '✓✓' : '✓'}</span>` : ''}
             </div>
             <div class="bubble-content">${escHtml(msg.content || '')}</div>
             ${msg.is_edited ? '<div class="bubble-edited">edited</div>' : ''}

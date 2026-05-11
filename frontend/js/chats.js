@@ -21,6 +21,7 @@ async function initApp() {
     wsOn('message.new', onNewMessage);
     wsOn('presence', onPresence);
     wsOn('typing', onTyping);
+    wsOn('message.read', onMessageRead);
 
     await loadChats();
     await loadContacts();
@@ -136,6 +137,11 @@ function onNewMessage(event) {
     if (event.message.chat_id === currentChatId) {
         appendMessage(event.message, false);
         scrollBottom();
+
+        // Если сообщение чужое — сразу отмечаем прочитанным
+        if (event.message.sender_id !== currentUser.id) {
+            wsSend({ type: 'message.read', message_id: event.message.id });
+        }
     }
 }
 
@@ -569,5 +575,13 @@ document.getElementById('group-info-save-btn').addEventListener('click', async (
         btn.textContent = 'Save';
     }
 });
+
+function onMessageRead(event) {
+    const statusEl = document.getElementById(`status-${event.message_id}`);
+    if (statusEl) {
+        statusEl.textContent = '✓✓';
+        statusEl.classList.add('read');
+    }
+}
 
 initApp();
