@@ -379,6 +379,11 @@ html, body {
     max-height: 140px;
     line-height: 1.5;
     transition: border-color 0.2s;
+    scrollbar-width: none;
+}
+
+#msg-input::-webkit-scrollbar {
+    display: none;
 }
 
 #msg-input:focus {

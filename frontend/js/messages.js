@@ -174,6 +174,11 @@ input.addEventListener('input', () => {
     }
     input.style.height = 'auto';
     input.style.height = Math.min(input.scrollHeight, 140) + 'px';
+
+    const len = input.value.length;
+    const counter = document.getElementById('msg-counter');
+    counter.textContent = `${len} / 2000`;
+    counter.style.color = len > 2000 ? 'var(--error)' : 'var(--muted)';
 });
 
 sendBtn.addEventListener('click', sendMessage);
@@ -181,6 +186,12 @@ sendBtn.addEventListener('click', sendMessage);
 async function sendMessage() {
     const content = input.value.trim();
     if (!content || !currentChatId) return;
+
+    if (content.length > 2000) {
+        // показываем счётчик красным, не отправляем
+        document.getElementById('msg-counter').style.color = 'var(--error)';
+        return;
+    }
 
     if (editingMsgId) {
         try {
@@ -205,4 +216,5 @@ async function sendMessage() {
     input.value = '';
     input.style.height = 'auto';
     wsSend({ type: 'message.send', chat_id: currentChatId, content });
+    document.getElementById('msg-counter').textContent = '0 / 2000';
 }

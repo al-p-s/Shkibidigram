@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 
 class SendMessageRequest(BaseModel):
@@ -9,9 +9,23 @@ class SendMessageRequest(BaseModel):
     type: str = "text"
     reply_to_id: uuid.UUID | None = None
 
+    @field_validator('content')
+    @classmethod
+    def content_max_length(cls, v):
+        if v and len(v) > 2000:
+            raise ValueError('Message too long, max 2000 characters')
+        return v
+
 
 class EditMessageRequest(BaseModel):
     content: str
+
+    @field_validator('content')
+    @classmethod
+    def content_max_length(cls, v):
+        if v and len(v) > 2000:
+            raise ValueError('Message too long, max 2000 characters')
+        return v
 
 
 class AttachmentResponse(BaseModel):
