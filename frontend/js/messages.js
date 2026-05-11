@@ -52,6 +52,7 @@ function appendMessage(msg, initial = false) {
     `;
 
     row.addEventListener('contextmenu', (e) => showMessageContextMenu(e, msg, isMine));
+    row._msgData = msg;
     wrap.appendChild(row);
 }
 
@@ -64,6 +65,10 @@ let contextMenu = null;
 function showMessageContextMenu(e, msg, isMine) {
     e.preventDefault();
     removeContextMenu();
+
+    // Берём актуальные данные из DOM
+    const row = document.querySelector(`.msg-row[data-id="${msg.id}"]`);
+    const actualMsg = row?._msgData || msg;
 
     const menu = document.createElement('div');
     menu.className = 'msg-context-menu';
@@ -79,6 +84,35 @@ function showMessageContextMenu(e, msg, isMine) {
             removeContextMenu();
         });
         menu.appendChild(editBtn);
+
+        // Кто прочитал
+        const readBy = actualMsg.statuses?.filter(s => s.status === 'read') || [];
+
+        const divider = document.createElement('div');
+        divider.className = 'context-menu-divider';
+        menu.appendChild(divider);
+
+        const label = document.createElement('div');
+        label.className = 'context-menu-label';
+        label.textContent = readBy.length > 0 ? 'Read by:' : 'Not read yet';
+        menu.appendChild(label);
+
+        if (readBy.length > 0) {
+            const chat = chats.find(c => c.id === currentChatId);
+            readBy.forEach(s => {
+                const member = chat?.members.find(m => m.user.id === s.user_id);
+                if (!member) return;
+                const name = member.user.display_name || member.user.username;
+                const row = document.createElement('div');
+                row.className = 'context-menu-item context-menu-reader';
+                row.textContent = name;
+                menu.appendChild(row);
+            });
+        }
+
+        const divider2 = document.createElement('div');
+        divider2.className = 'context-menu-divider';
+        menu.appendChild(divider2);
 
         const deleteAll = document.createElement('div');
         deleteAll.className = 'context-menu-item danger';

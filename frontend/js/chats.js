@@ -608,6 +608,17 @@ function onMessageRead(event) {
         statusEl.textContent = '✓✓';
         statusEl.classList.add('read');
     }
+
+    const row = document.querySelector(`.msg-row[data-id="${event.message_id}"]`);
+    if (row?._msgData) {
+        const existing = row._msgData.statuses?.find(s => s.user_id === event.user_id);
+        if (existing) {
+            existing.status = 'read';
+        } else {
+            row._msgData.statuses = row._msgData.statuses || [];
+            row._msgData.statuses.push({ user_id: event.user_id, status: 'read' });
+        }
+    }
 }
 
 initApp();
