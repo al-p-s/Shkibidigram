@@ -158,6 +158,20 @@ function onNewMessage(event) {
     }
 
     if (event.message.chat_id === currentChatId) {
+        // Проверяем нужен ли разделитель
+        const wrap = document.getElementById('messages-wrap');
+        const lastRow = wrap.querySelector('.msg-row:last-child');
+        if (lastRow) {
+            const lastMsg = lastRow._msgData;
+            if (lastMsg) {
+                const lastDate = new Date(lastMsg.created_at).toDateString();
+                const newDate = new Date(event.message.created_at).toDateString();
+                if (lastDate !== newDate) {
+                    appendDateSeparator(getDateLabel(event.message.created_at));
+                }
+            }
+        }
+
         appendMessage(event.message, false);
         scrollBottom();
         if (event.message.sender_id !== currentUser.id) {

@@ -28,8 +28,10 @@ async def handle_event(user_id: str, event: dict, websocket: WebSocket) -> None:
 
 async def _handle_send_message(user_id: str, event: dict, websocket: WebSocket) -> None:
     from app.features.messages import service as msg_service
+    from app.features.messages.models import Message
     from app.features.chats.models import ChatMember
     from sqlalchemy import select
+    from sqlalchemy.orm import selectinload
     import uuid
 
     chat_id = event.get("chat_id")
@@ -49,6 +51,14 @@ async def _handle_send_message(user_id: str, event: dict, websocket: WebSocket) 
             )
             msg = await msg_service.send_message(chat_id, user_id, data, db)
 
+            # Загружаем reply_to для получения текста оригинала
+            result = await db.execute(
+                select(Message)
+                .where(Message.id == msg.id)
+                .options(selectinload(Message.reply_to))
+            )
+            msg = result.scalar_one()
+
             result = await db.execute(
                 select(ChatMember).where(ChatMember.chat_id == uuid.UUID(chat_id))
             )
@@ -63,8 +73,11 @@ async def _handle_send_message(user_id: str, event: dict, websocket: WebSocket) 
                     "content": msg.content,
                     "type": msg.type,
                     "reply_to_id": str(msg.reply_to_id) if msg.reply_to_id else None,
+                    "reply_to_content": msg.reply_to.content if msg.reply_to else None,
+                    "reply_to_sender_id": str(msg.reply_to.sender_id) if msg.reply_to else None,
                     "is_edited": msg.is_edited,
                     "created_at": msg.created_at.isoformat(),
+                    "statuses": [],
                 },
             }
 
@@ -72,7 +85,6 @@ async def _handle_send_message(user_id: str, event: dict, websocket: WebSocket) 
 
         except msg_service.MessageError as e:
             await websocket.send_text(json.dumps({"error": e.message}))
-
 
 async def _handle_read(user_id: str, event: dict) -> None:
     from app.features.messages import service as msg_service
