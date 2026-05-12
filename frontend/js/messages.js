@@ -250,12 +250,15 @@ document.addEventListener('click', removeContextMenu);
 async function deleteMessage(msgId, mode) {
     try {
         if (mode === 'all') {
-            await api.messages.deleteForAll(msgId);
+            wsSend({ type: 'message.delete', message_id: msgId });
+            // Убираем из DOM сразу у себя
+            const row = document.querySelector(`.msg-row[data-id="${msgId}"]`);
+            if (row) row.remove();
         } else {
             await api.messages.deleteForMe(msgId);
+            const row = document.querySelector(`.msg-row[data-id="${msgId}"]`);
+            if (row) row.remove();
         }
-        const row = document.querySelector(`.msg-row[data-id="${msgId}"]`);
-        if (row) row.remove();
     } catch (e) {
         console.error('Failed to delete message:', e);
     }

@@ -22,6 +22,7 @@ async function initApp() {
     wsOn('presence', onPresence);
     wsOn('typing', onTyping);
     wsOn('message.read', onMessageRead);
+    wsOn('message.deleted', onMessageDeleted);
 
     await loadChats();
     await loadContacts();
@@ -650,5 +651,10 @@ document.addEventListener('keydown', (e) => {
         document.getElementById('empty-state').style.display = 'flex';
     }
 });
+
+function onMessageDeleted(event) {
+    const row = document.querySelector(`.msg-row[data-id="${event.message_id}"]`);
+    if (row) row.remove();
+}
 
 initApp();

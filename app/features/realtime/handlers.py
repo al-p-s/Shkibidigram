@@ -22,6 +22,9 @@ async def handle_event(user_id: str, event: dict, websocket: WebSocket) -> None:
     elif event_type == "typing":
         await _handle_typing(user_id, event)
 
+    elif event_type == "message.delete":
+        await _handle_delete(user_id, event)
+
     else:
         await websocket.send_text(json.dumps({"error": f"unknown event type: {event_type}"}))
 
@@ -135,3 +138,37 @@ async def _handle_typing(user_id: str, event: dict) -> None:
         "user_id": user_id,
     }
     await ws_manager.broadcast_to_users(member_ids, payload)
+
+async def _handle_delete(user_id: str, event: dict) -> None:
+    from app.features.messages import service as msg_service
+    from app.features.messages.models import Message
+    from app.features.chats.models import ChatMember
+    from sqlalchemy import select
+    import uuid
+
+    message_id = event.get("message_id")
+    if not message_id:
+        return
+
+    async with AsyncSessionLocal() as db:
+        try:
+            await msg_service.delete_for_all(message_id, user_id, db)
+
+            result = await db.execute(select(Message).where(Message.id == uuid.UUID(message_id)))
+            msg = result.scalar_one_or_none()
+            if not msg:
+                return
+
+            result = await db.execute(
+                select(ChatMember).where(ChatMember.chat_id == msg.chat_id)
+            )
+            member_ids = [str(m.user_id) for m in result.scalars().all()]
+
+            payload = {
+                "type": "message.deleted",
+                "message_id": message_id,
+            }
+            await ws_manager.broadcast_to_users(member_ids, payload)
+
+        except Exception:
+            pass
