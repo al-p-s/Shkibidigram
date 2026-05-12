@@ -53,6 +53,7 @@ html, body {
     font-size: 18px;
     font-weight: 800;
     letter-spacing: -0.5px;
+    cursor: pointer;
 }
 
 .logo span {

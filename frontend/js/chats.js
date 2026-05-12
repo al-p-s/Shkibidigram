@@ -621,4 +621,20 @@ function onMessageRead(event) {
     }
 }
 
+document.querySelector('.logo').addEventListener('click', () => {
+    currentChatId = null;
+    document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
+    document.getElementById('chat-view').style.display = 'none';
+    document.getElementById('empty-state').style.display = 'flex';
+});
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && currentChatId) {
+        currentChatId = null;
+        document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
+        document.getElementById('chat-view').style.display = 'none';
+        document.getElementById('empty-state').style.display = 'flex';
+    }
+});
+
 initApp();
