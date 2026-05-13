@@ -59,7 +59,7 @@ function appendMessage(msg, initial = false) {
         senderName = member?.user.display_name || member?.user.username || 'unknown';
     }
 
-    // Блок цитаты если это ответ
+    // Блок цитаты
     let replyBlock = '';
     if (msg.reply_to_id) {
         const repliedRow = document.querySelector(`.msg-row[data-id="${msg.reply_to_id}"]`);
@@ -94,6 +94,80 @@ function appendMessage(msg, initial = false) {
         `;
     }
 
+    // Блок вложения
+    let attachBlock = '';
+    if (msg.attachments && msg.attachments.length > 0) {
+        const att = msg.attachments[0];
+        const size = att.file_size ? `${(att.file_size / 1024).toFixed(1)} KB` : '';
+        const ext = (att.file_name || '').split('.').pop().toLowerCase();
+        const isImage = att.mime_type?.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext);
+        const isVideo = att.mime_type?.startsWith('video/') || ['mp4', 'mov', 'avi'].includes(ext);
+
+        if (isImage) {
+            attachBlock = `
+                <div class="bubble-attachment bubble-file-preview">
+                    <div class="file-preview-thumb">
+                        <a href="${API}/chats/attachments/${att.id}" target="_blank" download="${escHtml(att.file_name || 'file')}">
+                            <img src="${API}/chats/attachments/${att.id}" alt="${escHtml(att.file_name || 'image')}">
+                        </a>
+                    </div>
+                    <div class="file-preview-info">
+                        <div class="file-preview-name">
+                            <a href="${API}/chats/attachments/${att.id}" target="_blank" download="${escHtml(att.file_name || 'file')}" class="file-preview-name-link">
+                                ${escHtml(att.file_name || 'file')}
+                            </a>
+                        </div>
+                        <div class="file-preview-meta">${size}</div>
+                    </div>
+                    <a href="${API}/chats/attachments/${att.id}" target="_blank" download="${escHtml(att.file_name || 'file')}" class="file-preview-download">↓</a>
+                </div>`;
+        } else if (isVideo) {
+            attachBlock = `
+                <div class="bubble-attachment bubble-file-preview">
+                    <div class="file-preview-thumb">
+                        <a href="${API}/chats/attachments/${att.id}" download="${escHtml(att.file_name || 'file')}">
+                            <video src="${API}/chats/attachments/${att.id}" class="file-preview-video-thumb" muted preload="metadata"
+                                   style="display:none;"
+                                   onloadeddata="this.style.display='block'; this.nextElementSibling.style.display='none';"
+                                   onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"></video>
+                            <div class="file-preview-icon">🎬</div>
+                        </a>
+                    </div>
+                    <div class="file-preview-info">
+                        <div class="file-preview-name">
+                            <a href="${API}/chats/attachments/${att.id}" download="${escHtml(att.file_name || 'file')}" class="file-preview-name-link">
+                                ${escHtml(att.file_name || 'file')}
+                            </a>
+                        </div>
+                        <div class="file-preview-meta">${size}</div>
+                    </div>
+                    <a href="${API}/chats/attachments/${att.id}" download="${escHtml(att.file_name || 'file')}" class="file-preview-download">↓</a>
+                </div>`;
+        } else {
+            // Определяем иконку по типу файла
+            const ext = (att.file_name || '').split('.').pop().toLowerCase();
+            const icon = {
+                pdf: '📄', doc: '📝', docx: '📝', xls: '📊', xlsx: '📊',
+                ppt: '📊', pptx: '📊', zip: '🗜️', rar: '🗜️', mp3: '🎵',
+                txt: '📃',
+            }[ext] || '📎';
+
+            attachBlock = `
+                <div class="bubble-attachment bubble-file-preview">
+                    <a href="${API}/chats/attachments/${att.id}" target="_blank" download="${escHtml(att.file_name || 'file')}" class="file-preview-icon">${icon}</a>
+                    <div class="file-preview-info">
+                        <div class="file-preview-name">
+                            <a href="${API}/chats/attachments/${att.id}" target="_blank" download="${escHtml(att.file_name || 'file')}" class="file-preview-name-link">
+                                ${escHtml(att.file_name || 'file')}
+                            </a>
+                        </div>
+                        <div class="file-preview-meta">${size}</div>
+                    </div>
+                    <a href="${API}/chats/attachments/${att.id}" target="_blank" download="${escHtml(att.file_name || 'file')}" class="file-preview-download">↓</a>
+                </div>`;
+        }
+    }
+
     const row = document.createElement('div');
     row.className = 'msg-row' + (isMine ? ' mine' : '');
     row.dataset.id = msg.id;
@@ -106,12 +180,12 @@ function appendMessage(msg, initial = false) {
                 <span class="bubble-time">${time}</span>
                 ${isMine ? `<span class="bubble-status ${isRead ? 'read' : ''}" id="status-${msg.id}">${isRead ? '✓✓' : '✓'}</span>` : ''}
             </div>
-            <div class="bubble-content">${escHtml(msg.content || '')}</div>
+            ${attachBlock}
+            ${msg.content ? `<div class="bubble-content">${escHtml(msg.content)}</div>` : ''}
             ${msg.is_edited ? '<div class="bubble-edited">edited</div>' : ''}
         </div>
     `;
 
-    // Клик по цитате — скролл к оригиналу
     const replyEl = row.querySelector('.bubble-reply');
     if (replyEl) {
         replyEl.addEventListener('click', () => scrollToMessage(msg.reply_to_id));
@@ -125,9 +199,7 @@ function appendMessage(msg, initial = false) {
 function scrollToMessage(msgId) {
     const target = document.querySelector(`.msg-row[data-id="${msgId}"]`);
     if (!target) return;
-
     target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
     target.classList.add('highlighted');
     setTimeout(() => target.classList.remove('highlighted'), 1500);
 }
@@ -150,7 +222,6 @@ function showMessageContextMenu(e, msg, isMine) {
     menu.style.top = `${e.clientY}px`;
     menu.style.left = `${e.clientX}px`;
 
-    // Reply — для всех сообщений
     const replyBtn = document.createElement('div');
     replyBtn.className = 'context-menu-item';
     replyBtn.textContent = 'Reply';
@@ -162,7 +233,7 @@ function showMessageContextMenu(e, msg, isMine) {
 
     if (isMine) {
         const msgAge = (Date.now() - new Date(msg.created_at).getTime()) / 1000;
-        if (msgAge < 86400) {
+        if (msgAge < 86400 && msg.content) {
             const editBtn = document.createElement('div');
             editBtn.className = 'context-menu-item';
             editBtn.textContent = 'Edit';
@@ -251,7 +322,6 @@ async function deleteMessage(msgId, mode) {
     try {
         if (mode === 'all') {
             wsSend({ type: 'message.delete', message_id: msgId });
-            // Убираем из DOM сразу у себя
             const row = document.querySelector(`.msg-row[data-id="${msgId}"]`);
             if (row) row.remove();
         } else {
@@ -338,6 +408,41 @@ function cancelEdit() {
     if (indicator) indicator.style.display = 'none';
 }
 
+// --- File upload ---
+document.getElementById('attach-btn').addEventListener('click', () => {
+    document.getElementById('file-input').click();
+});
+
+document.getElementById('file-input').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file || !currentChatId) return;
+
+    if (file.size > 50 * 1024 * 1024) {
+        alert('File too large, max 50MB');
+        e.target.value = '';
+        return;
+    }
+
+    const btn = document.getElementById('attach-btn');
+    btn.disabled = true;
+    btn.textContent = '⏳';
+
+    try {
+        const formData = new FormData();
+        formData.append('file', file);
+        await api.messages.upload(currentChatId, formData);
+        // сообщение придёт через WS broadcast
+    } catch (err) {
+        console.error('Upload failed:', err);
+        alert(err.message);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '➕';
+        e.target.value = '';
+    }
+});
+
+// --- Send ---
 const input = document.getElementById('msg-input');
 const sendBtn = document.getElementById('send-btn');
 

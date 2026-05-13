@@ -65,5 +65,14 @@ const api = {
     deleteForAll:  (msgId)             => request('DELETE', `/chats/messages/${msgId}/all`),
     deleteForMe:   (msgId)             => request('DELETE', `/chats/messages/${msgId}/me`),
     edit: (msgId, body)                => request('PATCH', `/chats/messages/${msgId}`, body),
+    upload:       (chatId, formData)    => fetch(`${API}/chats/${chatId}/messages/upload`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${getToken()}` },
+        body: formData,
+    }).then(async r => {
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.detail || 'Upload failed');
+        return data;
+    }),
   },
 };
