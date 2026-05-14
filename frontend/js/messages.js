@@ -418,7 +418,7 @@ document.getElementById('file-input').addEventListener('change', async (e) => {
     if (!file || !currentChatId) return;
 
     if (file.size > 50 * 1024 * 1024) {
-        alert('File too large, max 50MB');
+        showToast('File too large, max 50MB');
         e.target.value = '';
         return;
     }
@@ -434,13 +434,20 @@ document.getElementById('file-input').addEventListener('change', async (e) => {
         // сообщение придёт через WS broadcast
     } catch (err) {
         console.error('Upload failed:', err);
-        alert(err.message);
+        showToast(err.message);
     } finally {
         btn.disabled = false;
         btn.textContent = '➕';
         e.target.value = '';
     }
 });
+
+function showToast(message, type = 'error', duration = 3000) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = `toast ${type} visible`;
+    setTimeout(() => toast.classList.remove('visible'), duration);
+}
 
 // --- Send ---
 const input = document.getElementById('msg-input');
