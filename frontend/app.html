@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0a0a0f">
   <title>Shkibidigram</title>
   <link rel="stylesheet" href="css/app.css">
 </head>
@@ -11,9 +14,17 @@
 
   <!-- TOPBAR -->
   <div id="topbar">
+    <!-- [develop] burger для мобилки -->
+    <button class="burger-btn" id="burger-btn">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
     <div class="logo">Shkibi<span>.</span></div>
     <div class="topbar-spacer"></div>
     <span id="current-user"></span>
+    <!-- [develop] кнопка профиля -->
+    <button class="btn-icon" id="profile-btn">Profile</button>
     <button class="btn-icon" id="logout-btn">logout</button>
   </div>
 
@@ -44,7 +55,7 @@
         </div>
         <div class="topbar-spacer"></div>
         <div id="typing-indicator">typing...</div>
-        <!-- Кнопка звонка — только для direct чатов -->
+        <!-- [my branch] кнопка звонка — только для direct чатов -->
         <button class="btn-call" id="btn-call" onclick="startCall()" style="display:none;">
           &#9990; CALL
         </button>
@@ -59,9 +70,13 @@
     </div>
 
   </div>
+
+  <!-- [develop] mobile sidebar overlay -->
+  <div class="mobile-overlay" id="mobile-overlay"></div>
+
 </div>
 
-<!-- ── ВХОДЯЩИЙ ЗВОНОК ───────────────────────────────────────────────────── -->
+<!-- ── ВХОДЯЩИЙ ЗВОНОК (my branch) ──────────────────────────────────────── -->
 <div class="modal-overlay" id="incoming-overlay">
   <div class="modal incoming-modal">
     <div class="incoming-icon">&#9990;</div>
@@ -74,7 +89,7 @@
   </div>
 </div>
 
-<!-- ── ОКНО ЗВОНКА ──────────────────────────────────────────────────────── -->
+<!-- ── ОКНО ЗВОНКА (my branch) ──────────────────────────────────────────── -->
 <div class="call-overlay" id="call-overlay">
   <div class="call-window">
 
@@ -97,7 +112,7 @@
   </div>
 </div>
 
-<!-- NEW CHAT MODAL -->
+<!-- ── NEW CHAT MODAL ────────────────────────────────────────────────────── -->
 <div class="modal-overlay" id="new-chat-modal">
   <div class="modal">
     <h3>New direct chat</h3>
@@ -110,10 +125,98 @@
   </div>
 </div>
 
+<!-- ── MY PROFILE MODAL (develop) ───────────────────────────────────────── -->
+<div class="modal-overlay" id="profile-modal">
+  <div class="modal profile-modal">
+    <h3>Your Profile</h3>
+
+    <div class="profile-avatar" id="profile-avatar">
+      <img id="profile-avatar-img" src="" alt="avatar">
+      <button class="btn-avatar" id="avatar-upload-btn" style="display:none;">
+        Change avatar
+      </button>
+      <input type="file" id="avatar-upload" accept="image/jpeg,image/png" style="display:none">
+    </div>
+
+    <div class="profile-field">
+      <label>Username</label>
+      <input type="text" id="profile-username" readonly disabled class="readonly-field">
+    </div>
+
+    <div class="profile-field">
+      <label>Email</label>
+      <input type="email" id="profile-email" readonly disabled class="readonly-field">
+    </div>
+
+    <div class="profile-field">
+      <label>Display name</label>
+      <input type="text" id="profile-display-name" readonly disabled>
+    </div>
+
+    <div class="profile-field">
+      <label>Status text</label>
+      <input type="text" id="profile-status-text" readonly disabled>
+    </div>
+
+    <div class="profile-field">
+      <label>Member since</label>
+      <input type="text" id="profile-created-at" readonly disabled class="readonly-field">
+    </div>
+
+    <div id="profile-edit-status" class="edit-status" style="display:none;">
+      Edit mode is ON - you can edit fields
+    </div>
+
+    <div id="profile-msg" class="modal-msg"></div>
+
+    <div class="modal-actions">
+      <button class="btn-secondary" id="profile-cancel">Cancel</button>
+      <button class="btn-primary"   id="profile-edit-btn">Edit</button>
+      <button class="btn-primary"   id="profile-save" style="display:none;">Save changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── USER PROFILE MODAL (develop) ─────────────────────────────────────── -->
+<div class="modal-overlay" id="user-profile-modal">
+  <div class="modal profile-modal">
+    <h3>Shkibi Profile</h3>
+
+    <div class="profile-avatar" id="user-profile-avatar-section">
+      <img id="user-profile-avatar-img" src="" alt="avatar">
+    </div>
+
+    <div class="profile-field">
+      <label>Username</label>
+      <input type="text" id="user-profile-username" readonly disabled class="readonly-field">
+    </div>
+
+    <div class="profile-field">
+      <label>Display name</label>
+      <input type="text" id="user-profile-display-name" readonly disabled class="readonly-field">
+    </div>
+
+    <div class="profile-field">
+      <label>Status</label>
+      <input type="text" id="user-profile-status-text" readonly disabled class="readonly-field">
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-primary"   id="user-profile-add-contact" style="display:none;">Add to contacts</button>
+      <button class="btn-secondary" id="user-profile-close">Close</button>
+    </div>
+    <div id="user-profile-msg" class="modal-msg"></div>
+  </div>
+</div>
+
+<!-- ── SCRIPTS ───────────────────────────────────────────────────────────── -->
 <script src="js/api.js"></script>
 <script src="js/ws.js"></script>
 <script src="js/chats.js"></script>
 <script src="js/messages.js"></script>
-<script src="js/call.js"></script>
+<script src="js/call.js"></script>      <!-- [my branch] -->
+<script src="js/profile.js"></script>   <!-- [develop] -->
+<script src="js/some_profile.js"></script> <!-- [develop] -->
+<script src="js/mobile.js"></script>    <!-- [develop] -->
 </body>
 </html>

@@ -16,6 +16,12 @@
   --online: #56f7a0;
   --sidebar: 300px;
   --topbar: 56px;
+
+  /* [develop] mobile vars */
+  --mobile-sidebar-width: 280px;
+  --mobile-header-height: 48px;
+  --safe-area-bottom: 0px;
+  --safe-area-top: 0px;
 }
 
 html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'DM Mono', monospace; font-size: 13px; overflow: hidden; }
@@ -120,12 +126,21 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   gap: 12px;
 }
 
-#chat-header-name { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; }
+#chat-header-name {
+  font-family: 'Syne', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  /* [develop] */
+  cursor: pointer;
+  transition: color 0.2s;
+}
+#chat-header-name:hover { color: var(--accent); }
+
 #chat-header-status { color: var(--muted); font-size: 11px; }
 #typing-indicator { color: var(--accent); font-size: 11px; display: none; }
 #typing-indicator.visible { display: block; }
 
-/* ── КНОПКА ЗВОНКА В ШАПКЕ ── */
+/* [my branch] кнопка звонка в шапке */
 .btn-call {
   background: none;
   border: 1px solid var(--accent);
@@ -264,13 +279,171 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 }
 .modal input:focus { border-color: var(--accent); }
 .modal-actions { display: flex; gap: 10px; }
-.btn-primary  { flex: 1; background: var(--accent); border: none; border-radius: 2px; color: #fff; font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 1px; padding: 12px; cursor: pointer; }
-.btn-secondary { flex: 1; background: none; border: 1px solid var(--border); border-radius: 2px; color: var(--muted); font-family: 'DM Mono', monospace; font-size: 12px; padding: 12px; cursor: pointer; }
-.btn-secondary:hover { color: var(--text); }
-.modal-msg { font-size: 12px; color: var(--error); display: none; }
-.modal-msg.show { display: block; }
 
-/* ── ВХОДЯЩИЙ ЗВОНОК ── */
+.btn-primary {
+  flex: 1;
+  background: var(--accent);
+  border: none;
+  border-radius: 2px;
+  color: #fff;
+  font-family: 'Syne', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  padding: 12px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.btn-primary:hover { background: #9180ff; }
+.btn-primary:disabled { background: var(--accent-dim); cursor: not-allowed; }
+
+.btn-secondary {
+  flex: 1;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  padding: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-secondary:hover { color: var(--text); border-color: var(--text); }
+
+/* [develop] — цвет по умолчанию нейтральный, состояния через классы */
+.modal-msg { font-size: 12px; color: var(--text); display: none; }
+.modal-msg.show { display: block; }
+.modal-msg.success {
+  background: rgba(86,247,160,0.1);
+  border: 1px solid var(--success);
+  color: var(--success);
+  display: block;
+}
+.modal-msg.error {
+  background: rgba(247,86,106,0.1);
+  border: 1px solid var(--error);
+  color: var(--error);
+  display: block;
+}
+
+/* ── PROFILE (develop) ── */
+.profile-modal {
+  width: 420px;
+  max-width: 90%;
+}
+
+.profile-avatar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.profile-avatar img {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--accent);
+  background: var(--surface2);
+}
+
+.avatar-upload-btn {
+  font-size: 11px;
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: underline;
+  font-family: 'DM Mono', monospace;
+}
+.avatar-upload-btn:hover { color: var(--text); }
+
+.profile-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.profile-field label {
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.profile-field input {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  padding: 10px 12px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.profile-field input:focus { border-color: var(--accent); }
+
+.readonly-field { background: var(--surface2) !important; opacity: 0.7; cursor: default; }
+.readonly-field:focus { border-color: var(--border) !important; }
+
+.profile-field input.editable {
+  background: var(--bg) !important;
+  border: 2px solid var(--accent) !important;
+  color: var(--text) !important;
+  opacity: 1;
+}
+
+.profile-field input:disabled {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.edit-status {
+  text-align: center;
+  padding: 10px;
+  margin: 10px 0;
+  background: rgba(124, 106, 247, 0.15);
+  border: 1px solid var(--accent);
+  border-radius: 2px;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.btn-avatar {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  letter-spacing: 0.5px;
+}
+.btn-avatar:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(124, 106, 247, 0.3);
+}
+.btn-avatar:active { transform: translateY(0); }
+.btn-avatar::before { font-size: 14px; }
+.btn-avatar:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+.btn-avatar:disabled:hover { background: var(--surface2); border-color: var(--border); color: var(--text); }
+
+/* ── ВХОДЯЩИЙ ЗВОНОК (my branch) ── */
 .incoming-modal {
   align-items: center;
   text-align: center;
@@ -282,7 +455,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .btn-reject { flex: 1; background: none; border: 1px solid var(--error); border-radius: 2px; color: var(--error); font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 1px; padding: 12px; cursor: pointer; transition: all 0.2s; }
 .btn-reject:hover { background: var(--error); color: #fff; }
 
-/* ── ОКНО ЗВОНКА ── */
+/* ── ОКНО ЗВОНКА (my branch) ── */
 .call-overlay {
   position: fixed; inset: 0;
   background: rgba(0,0,0,0.85);
@@ -368,3 +541,216 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .call-btn:hover { border-color: var(--accent); color: var(--accent); }
 .call-btn-end { border-color: var(--error); color: var(--error); }
 .call-btn-end:hover { background: var(--error); color: #fff; }
+
+/* ── BURGER (develop) ── */
+.burger-btn,
+#burger-btn {
+  display: none;
+}
+
+/* ═══════════════════════════════════════
+   MEDIA QUERIES (develop)
+   ═══════════════════════════════════════ */
+
+@media (max-width: 900px) {
+  :root { --sidebar: 280px; }
+
+  .chat-name { font-size: 12px; }
+  .chat-preview { font-size: 10px; }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --sidebar: 100%;
+    --topbar: 48px;
+  }
+
+  #app {
+    height: -webkit-fill-available;
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+    grid-template-columns: 1fr;
+    grid-template-rows: var(--topbar) 1fr;
+    transition: transform 0.3s ease;
+  }
+
+  html, body { height: -webkit-fill-available; }
+
+  #sidebar {
+    position: fixed;
+    top: var(--topbar);
+    left: 0;
+    width: 280px;
+    height: calc(100vh - var(--topbar));
+    z-index: 200;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    box-shadow: 2px 0 20px rgba(0, 0, 0, 0.5);
+  }
+
+  #sidebar.mobile-open { transform: translateX(0); }
+
+  .mobile-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 199;
+    display: none;
+  }
+  .mobile-overlay.active { display: block; }
+
+  #main { width: 100%; }
+
+  #topbar {
+    padding: 0 12px;
+    gap: 10px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .burger-btn,
+  #burger-btn {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 32px;
+    height: 32px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    gap: 4px;
+  }
+
+  .burger-btn span {
+    width: 20px;
+    height: 2px;
+    background: var(--text);
+    border-radius: 1px;
+    transition: 0.2s;
+  }
+
+  .burger-btn.active span:nth-child(1) { transform: rotate(45deg) translate(4px, 4px); }
+  .burger-btn.active span:nth-child(2) { opacity: 0; }
+  .burger-btn.active span:nth-child(3) { transform: rotate(-45deg) translate(4px, -4px); }
+
+  .logo { font-size: 16px; }
+  #current-user { font-size: 10px; }
+  .btn-icon { padding: 4px 10px; font-size: 10px; }
+
+  .msg-row { max-width: 85%; }
+
+  .bubble { padding: 8px 12px; font-size: 12px; }
+  .bubble-sender { font-size: 10px; }
+  .bubble-time { font-size: 9px; }
+
+  .modal { width: 90%; max-width: 380px; padding: 24px 20px; margin: 16px; }
+
+  .profile-modal {
+    width: 90%;
+    max-width: 400px;
+    margin: 20px auto;
+    max-height: 85vh;
+    overflow-y: auto;
+  }
+
+  #input-area { padding: 12px; gap: 8px; }
+  #msg-input { padding: 10px 12px; font-size: 12px; min-height: 40px; }
+  #send-btn { padding: 10px 16px; font-size: 11px; height: 40px; }
+
+  .avatar { width: 32px; height: 32px; font-size: 12px; }
+
+  .chat-item { padding: 10px 12px; }
+
+  button,
+  .chat-item,
+  .btn-icon,
+  .btn-primary,
+  .btn-secondary {
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  #chat-header { padding: 0 12px; gap: 8px; }
+  #chat-header-name { font-size: 13px; }
+  #chat-header-status { font-size: 10px; }
+
+  #messages-wrap { padding: 12px; }
+
+  .modal-overlay { -webkit-overflow-scrolling: touch; }
+
+  /* call window on mobile */
+  .call-window { width: 95vw; }
+  .call-videos { min-height: 220px; }
+  #call-remote-video { max-height: 220px; }
+  #call-local-video { width: 90px; }
+
+  @supports (padding: max(0px)) {
+    #input-area {
+      padding-bottom: max(12px, env(safe-area-inset-bottom));
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .msg-row { max-width: 90%; }
+
+  .modal .modal-actions { flex-direction: column; }
+  .modal .modal-actions button { width: 100%; }
+
+  .profile-field input { font-size: 12px; padding: 8px 10px; }
+  .profile-field label { font-size: 10px; }
+
+  .edit-status { font-size: 10px; padding: 8px; }
+
+  #typing-indicator { font-size: 9px; }
+
+  .btn-avatar { padding: 6px 12px; font-size: 10px; }
+
+  .profile-avatar img { width: 60px; height: 60px; }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  button,
+  .chat-item,
+  .modal-actions button,
+  .btn-icon,
+  .btn-new,
+  #send-btn {
+    min-height: 40px;
+  }
+
+  .chat-item:hover { background: transparent; }
+  .chat-item:active { background: var(--surface2); }
+
+  button:active,
+  .btn-primary:active,
+  .btn-secondary:active {
+    transform: scale(0.97);
+  }
+}
+
+@media (max-width: 900px) and (orientation: landscape) {
+  :root { --topbar: 44px; }
+
+  #sidebar { overflow-y: auto; }
+
+  .chat-item { padding: 6px 12px; }
+
+  .profile-modal { max-height: 90vh; }
+
+  .modal { max-height: 85vh; overflow-y: auto; }
+
+  /* call window landscape */
+  .call-window { width: 80vw; }
+  .call-videos { min-height: 260px; }
+}
+
+@media screen and (-webkit-min-device-pixel-ratio: 0) {
+  select,
+  textarea,
+  input {
+    font-size: 16px !important;
+  }
+}
