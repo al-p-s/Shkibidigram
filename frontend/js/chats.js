@@ -23,9 +23,13 @@ async function initApp() {
     wsOn('typing', onTyping);
     wsOn('message.read', onMessageRead);
     wsOn('message.deleted', onMessageDeleted);
+    wsOn('error', onWsError);
+    wsOn('blocked_by', onBlockedBy);
+    wsOn('unblocked_by', onUnblockedBy);
 
     await loadChats();
     await loadContacts();
+    await loadBlockedUsers();
 }
 
 async function loadChats() {
@@ -124,6 +128,7 @@ async function openChat(chatId) {
     document.getElementById('chat-header-name').onclick = () => openGroupInfo(chat);
 }
     await loadMessages(chatId);
+    await updateChatInputState(chat);
 }
 
 function onPresence(event) {
@@ -655,6 +660,84 @@ document.addEventListener('keydown', (e) => {
 function onMessageDeleted(event) {
     const row = document.querySelector(`.msg-row[data-id="${event.message_id}"]`);
     if (row) row.remove();
+}
+
+async function updateChatInputState(chat) {
+    const inputArea = document.getElementById('input-area');
+    const blockedNotice = document.getElementById('blocked-notice');
+    const noticeText = document.getElementById('blocked-notice-text');
+
+    if (chat.type !== 'direct') {
+        inputArea.style.display = '';
+        blockedNotice.style.display = 'none';
+        return;
+    }
+
+    const other = chat.members.find(m => m.user.id !== currentUser.id);
+    if (!other) return;
+
+    // Я заблокировал его
+    const iBlockedThem = typeof blockedUsers !== 'undefined'
+        && blockedUsers.some(b => b.blocked.id === other.user.id);
+
+    if (iBlockedThem) {
+        inputArea.style.display = 'none';
+        noticeText.textContent = 'You have blocked this user.';
+        blockedNotice.style.display = 'flex';
+        return;
+    }
+
+    // Он заблокировал меня — проверяем через API
+    try {
+        const res = await fetch(`${API}/contacts/blocked/check/${other.user.id}`, {
+            headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+        if (res.ok) {
+            const isBlockedByThem = await res.json();
+            if (isBlockedByThem) {
+                inputArea.style.display = 'none';
+                noticeText.textContent = 'You have been blocked by this user.';
+                blockedNotice.style.display = 'flex';
+                return;
+            }
+        }
+    } catch (e) {
+        console.error('Failed to check block status:', e);
+    }
+
+    inputArea.style.display = '';
+    blockedNotice.style.display = 'none';
+}
+
+function onWsError(event) {
+    if (event.error === 'You are blocked by this user') {
+        const inputArea = document.getElementById('input-area');
+        const blockedNotice = document.getElementById('blocked-notice');
+        inputArea.style.display = 'none';
+        document.getElementById('blocked-notice-text').textContent = 'You have been blocked by this user.';
+        blockedNotice.style.display = 'flex';
+    }
+}
+
+function onBlockedBy(event) {
+    const chat = chats.find(c =>
+        c.type === 'direct' && c.members.some(m => m.user.id === event.user_id)
+    );
+    if (chat && chat.id === currentChatId) {
+        document.getElementById('input-area').style.display = 'none';
+        document.getElementById('blocked-notice-text').textContent = 'You have been blocked by this user.';
+        document.getElementById('blocked-notice').style.display = 'flex';
+    }
+}
+
+function onUnblockedBy(event) {
+    const chat = chats.find(c =>
+        c.type === 'direct' && c.members.some(m => m.user.id === event.user_id)
+    );
+    if (chat && chat.id === currentChatId) {
+        document.getElementById('input-area').style.display = '';
+        document.getElementById('blocked-notice').style.display = 'none';
+    }
 }
 
 initApp();

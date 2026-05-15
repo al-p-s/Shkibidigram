@@ -47,6 +47,10 @@
 
             <div id="messages-wrap"></div>
 
+            <div id="blocked-notice" style="display:none;">
+                <span id="blocked-notice-text"></span>
+            </div>
+
             <div id="input-area">
                 <div id="input-row">
                     <button class="btn-attach" id="attach-btn" title="Attach file">➕</button>
@@ -148,6 +152,7 @@
 
         <div class="modal-actions">
             <button class="btn-primary" id="user-profile-add-contact" style="display:none;">Add to contacts</button>
+            <button class="btn-danger" id="user-profile-block-btn" style="display:none;">Block</button>
             <button class="btn-secondary" id="user-profile-close">Close</button>
         </div>
         <div id="user-profile-msg" class="modal-msg"></div>

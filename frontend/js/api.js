@@ -43,6 +43,11 @@ const api = {
     list:   ()   => request('GET', '/contacts/'),
     add:    (id) => request('POST', `/contacts/${id}`),
     remove: (id) => request('DELETE', `/contacts/${id}`),
+    blocked: {
+        list:    ()   => request('GET', '/contacts/blocked'),
+        block:   (id) => request('POST', `/contacts/blocked/${id}`),
+        unblock: (id) => request('DELETE', `/contacts/blocked/${id}`),
+    },
   },
   chats: {
     list:   ()       => request('GET', '/chats/'),

@@ -87,7 +87,7 @@ async def _handle_send_message(user_id: str, event: dict, websocket: WebSocket) 
             await ws_manager.broadcast_to_users(member_ids, payload)
 
         except msg_service.MessageError as e:
-            await websocket.send_text(json.dumps({"error": e.message}))
+            await websocket.send_text(json.dumps({"error": e.message, "status_code": e.status_code}))
 
 async def _handle_read(user_id: str, event: dict) -> None:
     from app.features.messages import service as msg_service

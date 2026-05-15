@@ -1,3 +1,13 @@
+let blockedUsers = [];
+
+async function loadBlockedUsers() {
+    try {
+        blockedUsers = await api.contacts.blocked.list();
+    } catch (e) {
+        console.error('Failed to load blocked users:', e);
+    }
+}
+
 async function openUserProfile(userId) {
     try {
         let userData = null;
@@ -57,10 +67,60 @@ async function openUserProfile(userId) {
             }
         }
 
+        // Кнопка блокировки
+        const blockBtn = document.getElementById('user-profile-block-btn');
+        if (blockBtn) {
+            if (userId === currentUser.id) {
+                blockBtn.style.display = 'none';
+            } else {
+                const isBlocked = blockedUsers.some(b => b.blocked.id === userId);
+                blockBtn.style.display = '';
+                blockBtn.textContent = isBlocked ? 'Unblock' : 'Block';
+                blockBtn.className = isBlocked ? 'btn-secondary' : 'btn-danger';
+                const freshBlock = blockBtn.cloneNode(true);
+                blockBtn.replaceWith(freshBlock);
+                freshBlock.addEventListener('click', () => toggleBlock(userId, freshBlock));
+            }
+        }
+
         document.getElementById('user-profile-modal').classList.add('open');
 
     } catch (error) {
         console.error('Error loading user profile:', error);
+    }
+}
+
+async function toggleBlock(userId, btn) {
+    const msgEl = document.getElementById('user-profile-msg');
+    const isBlocked = blockedUsers.some(b => b.blocked.id === userId);
+    btn.disabled = true;
+
+    try {
+        if (isBlocked) {
+            await api.contacts.blocked.unblock(userId);
+            blockedUsers = blockedUsers.filter(b => b.blocked.id !== userId);
+            btn.textContent = 'Block';
+            btn.className = 'btn-danger';
+            if (msgEl) { msgEl.textContent = 'User unblocked'; msgEl.className = 'modal-msg success show'; }
+        } else {
+            const entry = await api.contacts.blocked.block(userId);
+            blockedUsers.push(entry);
+            btn.textContent = 'Unblock';
+            btn.className = 'btn-secondary';
+            if (msgEl) { msgEl.textContent = 'User blocked'; msgEl.className = 'modal-msg success show'; }
+        }
+
+        // Обновляем инпут если открыт чат с этим юзером
+        const chat = chats.find(c =>
+            c.type === 'direct' && c.members.some(m => m.user.id === userId)
+        );
+        if (chat && chat.id === currentChatId) {
+            updateChatInputState(chat);
+        }
+    } catch (e) {
+        if (msgEl) { msgEl.textContent = e.message; msgEl.className = 'modal-msg error show'; }
+    } finally {
+        btn.disabled = false;
     }
 }
 
