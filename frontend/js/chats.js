@@ -113,6 +113,17 @@ async function openChat(chatId) {
     document.getElementById('chat-header-name').style.cursor = 'pointer';
     document.getElementById('chat-header-name').title = 'Click to view profile';
 
+    const callBtn = document.getElementById('btn-call');
+    if (callBtn) {
+        if (chat.type === 'direct') {
+            callBtn.style.display = 'block';
+            console.log('[UI] Call button shown for direct chat');
+        } else {
+            callBtn.style.display = 'none';
+            console.log('[UI] Call button hidden for group chat');
+        }
+    }
+
     document.getElementById('chat-header-name').onclick = () => {
         if (chat.type === 'direct') {
             const other = chat.members.find(m => m.user.id !== currentUser.id);
