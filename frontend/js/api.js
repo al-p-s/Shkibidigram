@@ -23,7 +23,7 @@ async function request(method, path, body = null, auth = true) {
   if (res.status === 204) return null;
 
   const data = await res.json();
-  if (!res.ok) throw new Error(data.detail || 'Request failed');
+  if (!res.ok) throw new Error(data.detail?.map ? data.detail.map(e => e.msg).join(', ') : data.detail || 'Request failed');
   return data;
 }
 
@@ -63,6 +63,8 @@ const api = {
             body: formData,
         }).then(r => r.json());
     },
+    setRole: (chatId, userId, role) => request('PATCH', `/chats/${chatId}/members/${userId}/role?role=${role}`),
+    removeMember: (id, userId)      => request('DELETE', `/chats/${id}/members/${userId}`),
   },
   messages: {
     list: (chatId, params = '') => request('GET', `/chats/${chatId}/messages${params}`),

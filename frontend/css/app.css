@@ -364,6 +364,10 @@ html, body {
     margin-top: 4px;
 }
 
+.msg-row.mine .bubble-edited {
+    color: rgba(255, 255, 255, 0.5);
+}
+
 #input-area {
     padding: 16px 20px;
     border-top: 1px solid var(--border);
@@ -1211,6 +1215,66 @@ html, body {
     color: var(--muted);
     font-size: 12px;
     font-style: italic;
+}
+
+.member-owner-badge {
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    color: #c0392b;
+    border: 1px solid #c0392b;
+    border-radius: 2px;
+    padding: 1px 5px;
+    margin-left: 6px;
+    display: inline-block;
+}
+
+.member-admin-badge {
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    color: var(--accent);
+    border: 1px solid var(--accent-dim);
+    border-radius: 2px;
+    padding: 1px 5px;
+    margin-left: 6px;
+    display: inline-block;
+}
+
+.btn-role {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--muted);
+    padding: 4px 6px;
+    opacity: 0;
+    transition: opacity 0.15s, color 0.15s;
+}
+
+.chat-item:hover .btn-role {
+    opacity: 1;
+}
+
+.btn-role:hover {
+    color: var(--accent);
+}
+
+.group-description-label {
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 4px;
+    margin-top: 8px;
+}
+
+.group-description-text {
+    font-size: 12px;
+    color: var(--text);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 8px 10px;
+    line-height: 1.5;
 }
 
 .burger-btn,

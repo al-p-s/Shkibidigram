@@ -25,6 +25,7 @@ class ChatResponse(BaseModel):
     id: uuid.UUID
     type: str
     name: str | None
+    description: str | None
     avatar_url: str | None
     created_at: datetime
     members: list[ChatMemberResponse]
@@ -36,3 +37,4 @@ class ChatResponse(BaseModel):
 
 class UpdateChatRequest(BaseModel):
     name: str | None = None
+    description: str | None = None

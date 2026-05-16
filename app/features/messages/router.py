@@ -152,6 +152,18 @@ async def get_attachment(
     except S3Error:
         raise HTTPException(status_code=404, detail="File not found")
 
+@router.patch("/messages/{message_id}", response_model=MessageResponse)
+async def edit_message(
+    message_id: str,
+    data: EditMessageRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        return await service.edit_message(message_id, str(current_user.id), data, db)
+    except service.MessageError as e:
+        raise HTTPException(status_code=e.status_code, detail=e.message)
+
 @router.delete("/messages/{message_id}/all", status_code=204)
 async def delete_for_all(
     message_id: str,
