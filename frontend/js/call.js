@@ -249,7 +249,7 @@ async function ensureLocalStream(video = false) {
 
   try {
     console.log('[CALL] Requesting media...');
-    const constraints = { audio: true, video: false }; // Только аудио для теста
+    const constraints = { audio: true, video: true }; // Только аудио для теста
     callState.localStream = await navigator.mediaDevices.getUserMedia(constraints);
 
     // ✅ Проверяем, что звук есть
