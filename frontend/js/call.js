@@ -40,7 +40,7 @@ async function startCall() {
   const callee = chat.members.find(m => m.user.id !== currentUser.id);
   if (!callee) return;
 
-   const res = await fetch(`http://localhost:8000/api/v1/webrtc/rooms`, {
+   const res = await fetch(`/api/v1/webrtc/rooms`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${getToken()}`,
@@ -143,8 +143,7 @@ async function connectToRoom(roomId) {
 
   return new Promise((resolve, reject) => {
     const wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    // ✅ WebSocket URL тоже с /api/v1
-    const wsUrl = `${wsProto}//${location.hostname}:8000/api/v1/webrtc/ws/${roomId}`;
+    const wsUrl = `${wsProto}//${location.host}/api/v1/webrtc/ws/${roomId}`;
 
     console.log('[CALL] Connecting to WebSocket:', wsUrl);
 
