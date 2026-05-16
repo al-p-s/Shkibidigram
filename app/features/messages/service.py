@@ -103,6 +103,22 @@ async def send_message(
 ) -> Message:
     await _check_member(uuid.UUID(chat_id), uuid.UUID(user_id), db)
 
+    # Проверка блокировки для direct чатов
+    from app.features.chats.models import Chat
+    from sqlalchemy.orm import selectinload
+    chat_result = await db.execute(
+        select(Chat)
+        .where(Chat.id == uuid.UUID(chat_id))
+        .options(selectinload(Chat.members))
+    )
+    chat = chat_result.scalar_one_or_none()
+    if chat and chat.type == 'direct':
+        other = next((m for m in chat.members if str(m.user_id) != user_id), None)
+        if other:
+            from app.features.contacts.service import is_blocked
+            if await is_blocked(user_id, str(other.user_id), db):
+                raise MessageError("You are blocked by this user", status_code=403)
+
     if data.reply_to_id:
         result = await db.execute(
             select(Message).where(

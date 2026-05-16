@@ -109,7 +109,16 @@ async def block_user(user_id: str, blocked_id: str, db: AsyncSession) -> Block:
         .where(Block.id == block.id)
         .options(selectinload(Block.blocked))
     )
-    return result.scalar_one()
+    block = result.scalar_one()
+
+    # Уведомляем заблокированного через WS
+    from app.core.ws_manager import ws_manager
+    await ws_manager.send_to_user(blocked_id, {
+        "type": "blocked_by",
+        "user_id": user_id,
+    })
+
+    return block
 
 
 async def unblock_user(user_id: str, blocked_id: str, db: AsyncSession) -> None:
