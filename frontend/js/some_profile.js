@@ -1,3 +1,13 @@
+let blockedUsers = [];
+
+async function loadBlockedUsers() {
+    try {
+        blockedUsers = await api.contacts.blocked.list();
+    } catch (e) {
+        console.error('Failed to load blocked users:', e);
+    }
+}
+
 async function openUserProfile(userId) {
     try {
         let userData = null;
@@ -8,9 +18,13 @@ async function openUserProfile(userId) {
             if (member) userData = member.user;
         }
 
+        if (!userData && typeof contacts !== 'undefined') {
+            const contact = contacts.find(c => c.contact.id === userId);
+            if (contact) userData = contact.contact;
+        }
+
         if (!userData) {
-            console.log('User not found in local cache');
-            return;
+            userData = await api.users.getProfile(userId);
         }
 
         document.getElementById('user-profile-username').value = userData.username || 'N/A';
@@ -19,7 +33,7 @@ async function openUserProfile(userId) {
 
         const avatarImg = document.getElementById('user-profile-avatar-img');
         if (avatarImg) {
-            if (userData.avatar_url && userData.avatar_url !== 'null' && userData.avatar_url !== 'undefined' && userData.avatar_url !== '') {
+            if (userData.avatar_url && !['null', 'undefined', ''].includes(userData.avatar_url)) {
                 avatarImg.src = `${API}/users/${userId}/avatar?t=${Date.now()}`;
                 avatarImg.onerror = () => {
                     const initials = (userData.username || 'U').substring(0, 2).toUpperCase();
@@ -33,13 +47,39 @@ async function openUserProfile(userId) {
 
         const addBtn = document.getElementById('user-profile-add-contact');
         if (addBtn) {
-            if (userId !== currentUser.id) {
-                addBtn.style.display = 'block';
-                addBtn.replaceWith(addBtn.cloneNode(true));
-                const newAddBtn = document.getElementById('user-profile-add-contact');
-                newAddBtn.addEventListener('click', () => addContact(userId));
-            } else {
+            if (userId === currentUser.id) {
                 addBtn.style.display = 'none';
+            } else {
+                const alreadyContact = typeof contacts !== 'undefined'
+                    && contacts.some(c => c.contact.id === userId);
+
+                if (alreadyContact) {
+                    addBtn.style.display = 'none';
+                } else {
+                    addBtn.style.display = 'block';
+                    addBtn.disabled = false;
+                    addBtn.textContent = 'Add to contacts';
+                    // Клонируем чтобы снять старые слушатели
+                    const fresh = addBtn.cloneNode(true);
+                    addBtn.replaceWith(fresh);
+                    fresh.addEventListener('click', () => addContact(userId, fresh));
+                }
+            }
+        }
+
+        // Кнопка блокировки
+        const blockBtn = document.getElementById('user-profile-block-btn');
+        if (blockBtn) {
+            if (userId === currentUser.id) {
+                blockBtn.style.display = 'none';
+            } else {
+                const isBlocked = blockedUsers.some(b => b.blocked.id === userId);
+                blockBtn.style.display = '';
+                blockBtn.textContent = isBlocked ? 'Unblock' : 'Block';
+                blockBtn.className = isBlocked ? 'btn-secondary' : 'btn-danger';
+                const freshBlock = blockBtn.cloneNode(true);
+                blockBtn.replaceWith(freshBlock);
+                freshBlock.addEventListener('click', () => toggleBlock(userId, freshBlock));
             }
         }
 
@@ -50,20 +90,53 @@ async function openUserProfile(userId) {
     }
 }
 
-async function addContact(userId) {
+async function toggleBlock(userId, btn) {
     const msgEl = document.getElementById('user-profile-msg');
-    const btn = document.getElementById('user-profile-add-contact');
+    const isBlocked = blockedUsers.some(b => b.blocked.id === userId);
+    btn.disabled = true;
+
+    try {
+        if (isBlocked) {
+            await api.contacts.blocked.unblock(userId);
+            blockedUsers = blockedUsers.filter(b => b.blocked.id !== userId);
+            btn.textContent = 'Block';
+            btn.className = 'btn-danger';
+            if (msgEl) { msgEl.textContent = 'User unblocked'; msgEl.className = 'modal-msg success show'; }
+        } else {
+            const entry = await api.contacts.blocked.block(userId);
+            blockedUsers.push(entry);
+            btn.textContent = 'Unblock';
+            btn.className = 'btn-secondary';
+            if (msgEl) { msgEl.textContent = 'User blocked'; msgEl.className = 'modal-msg success show'; }
+        }
+
+        // Обновляем инпут если открыт чат с этим юзером
+        const chat = chats.find(c =>
+            c.type === 'direct' && c.members.some(m => m.user.id === userId)
+        );
+        if (chat && chat.id === currentChatId) {
+            updateChatInputState(chat);
+        }
+    } catch (e) {
+        if (msgEl) { msgEl.textContent = e.message; msgEl.className = 'modal-msg error show'; }
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+async function addContact(userId, btn) {
+    const msgEl = document.getElementById('user-profile-msg');
     btn.disabled = true;
     btn.textContent = 'Adding...';
 
     try {
-        await api.contacts.add(userId);
+        const newContact = await api.contacts.add(userId);
+       if (typeof contacts !== 'undefined') contacts.push(newContact);
         if (msgEl) {
             msgEl.textContent = 'Contact added!';
             msgEl.className = 'modal-msg success show';
         }
         btn.textContent = '✓ Added';
-        btn.disabled = true;
     } catch (error) {
         if (msgEl) {
             msgEl.textContent = error.message;

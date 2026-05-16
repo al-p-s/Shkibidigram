@@ -70,7 +70,7 @@ async def search_user(
     if not username:
         raise HTTPException(status_code=400, detail="Provide username or email")
 
-    return await service.search_by_username(username, db)
+    return await service.search_by_username(username, str(current_user.id), db)
 
 
 @router.post("/online", response_model=dict[str, bool])

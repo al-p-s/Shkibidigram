@@ -49,11 +49,20 @@ async def update_avatar(user_id: str, avatar_url: str, db: AsyncSession) -> User
     return user
 
 
-async def search_by_username(username: str, db: AsyncSession) -> User | None:
+async def search_by_username(username: str, searcher_id: str, db: AsyncSession) -> User | None:
     result = await db.execute(
         select(User).where(User.username == username, User.is_active == True)  # noqa
     )
-    return result.scalar_one_or_none()
+    user = result.scalar_one_or_none()
+    if not user:
+        return None
+
+    # Проверяем не заблокировал ли найденный пользователь ищущего
+    from app.features.contacts.service import is_blocked
+    if await is_blocked(str(user.id), searcher_id, db):
+        return None
+
+    return user
 
 async def get_public_profile(user_id: str, db: AsyncSession) -> User | None:
     user = await db.get(User, uuid.UUID(user_id))

@@ -28,6 +28,8 @@ class ChatResponse(BaseModel):
     avatar_url: str | None
     created_at: datetime
     members: list[ChatMemberResponse]
+    unread_count: int = 0
+    last_message_at: datetime | None = None
 
     model_config = {"from_attributes": True}
 

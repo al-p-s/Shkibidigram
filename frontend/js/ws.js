@@ -19,11 +19,16 @@ function wsConnect() {
   };
 
   socket.onmessage = (e) => {
-    try {
-      const event = JSON.parse(e.data);
-      const handler = handlers[event.type];
-      if (handler) handler(event);
-    } catch {}
+      try {
+          const event = JSON.parse(e.data);
+          if (event.error) {
+              const handler = handlers['error'];
+              if (handler) handler({ type: 'error', error: event.error });
+              return;
+          }
+          const handler = handlers[event.type];
+          if (handler) handler(event);
+      } catch {}
   };
 
   socket.onclose = () => {

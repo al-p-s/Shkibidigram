@@ -43,14 +43,41 @@ const api = {
     list:   ()   => request('GET', '/contacts/'),
     add:    (id) => request('POST', `/contacts/${id}`),
     remove: (id) => request('DELETE', `/contacts/${id}`),
+    blocked: {
+        list:    ()   => request('GET', '/contacts/blocked'),
+        block:   (id) => request('POST', `/contacts/blocked/${id}`),
+        unblock: (id) => request('DELETE', `/contacts/blocked/${id}`),
+    },
   },
   chats: {
     list:   ()       => request('GET', '/chats/'),
     get:    (id)     => request('GET', `/chats/${id}`),
     create: (body)   => request('POST', '/chats/', body),
+    leave:  (id)     => request('DELETE', `/chats/${id}/leave`),
+    addMember: (id, userId)  => request('POST', `/chats/${id}/members/${userId}`),
+    update: (id, body) => request('PATCH', `/chats/${id}`, body),
+    uploadAvatar: (id, formData) => {
+        return fetch(`${API}/chats/${id}/avatar`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${getToken()}` },
+            body: formData,
+        }).then(r => r.json());
+    },
   },
   messages: {
     list: (chatId, params = '') => request('GET', `/chats/${chatId}/messages${params}`),
-    send: (chatId, body)        => request('POST', `/chats/${chatId}/messages`, body),
+    send: (chatId, body)               => request('POST', `/chats/${chatId}/messages`, body),
+    deleteForAll:  (msgId)             => request('DELETE', `/chats/messages/${msgId}/all`),
+    deleteForMe:   (msgId)             => request('DELETE', `/chats/messages/${msgId}/me`),
+    edit: (msgId, body)                => request('PATCH', `/chats/messages/${msgId}`, body),
+    upload:       (chatId, formData)    => fetch(`${API}/chats/${chatId}/messages/upload`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${getToken()}` },
+        body: formData,
+    }).then(async r => {
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.detail || 'Upload failed');
+        return data;
+    }),
   },
 };

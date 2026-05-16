@@ -1,12 +1,13 @@
 import uuid
 
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.features.chats.models import Chat, ChatMember
 from app.features.chats.schemas import CreateChatRequest, UpdateChatRequest
 from app.features.users.models import User
+from app.features.messages.models import Message, MessageStatus, MessageDeletedFor
 
 
 class ChatError(Exception):
@@ -15,16 +16,47 @@ class ChatError(Exception):
         self.status_code = status_code
 
 
-async def get_user_chats(user_id: str, db: AsyncSession) -> list[Chat]:
+async def get_user_chats(user_id: str, db: AsyncSession) -> list[dict]:
     result = await db.execute(
         select(Chat)
         .join(ChatMember, ChatMember.chat_id == Chat.id)
         .where(ChatMember.user_id == uuid.UUID(user_id))
-        .options(
-            selectinload(Chat.members).selectinload(ChatMember.user)
-        )
+        .options(selectinload(Chat.members).selectinload(ChatMember.user))
     )
-    return list(result.scalars().all())
+    chats = list(result.scalars().all())
+
+    last_msg_result = await db.execute(
+        select(Message.chat_id, func.max(Message.created_at))
+        .where(Message.chat_id.in_([c.id for c in chats]))
+        .group_by(Message.chat_id)
+    )
+    last_msg_map = {str(chat_id): ts for chat_id, ts in last_msg_result.all()}
+
+    for chat in chats:
+        chat.last_message_at = last_msg_map.get(str(chat.id))
+
+    # Считаем непрочитанные для каждого чата
+    unread_result = await db.execute(
+        select(Message.chat_id, func.count(Message.id))
+        .outerjoin(
+            MessageStatus,
+            (MessageStatus.message_id == Message.id) &
+            (MessageStatus.user_id == uuid.UUID(user_id))
+        )
+        .where(
+            Message.chat_id.in_([c.id for c in chats]),
+            Message.sender_id != uuid.UUID(user_id),
+            Message.is_deleted_for_all == False,  # noqa
+            (MessageStatus.status == None) | (MessageStatus.status != 'read'),  # noqa
+        )
+        .group_by(Message.chat_id)
+    )
+    unread_map = {str(chat_id): count for chat_id, count in unread_result.all()}
+
+    for chat in chats:
+        chat.unread_count = unread_map.get(str(chat.id), 0)
+
+    return chats
 
 
 async def get_chat(chat_id: str, user_id: str, db: AsyncSession) -> Chat:
@@ -147,6 +179,23 @@ async def add_member(chat_id: str, user_id: str, new_user_id: str, db: AsyncSess
         raise ChatError("User not found", status_code=404)
 
     db.add(ChatMember(chat_id=uuid.UUID(chat_id), user_id=uuid.UUID(new_user_id), role="member"))
+    await db.commit()
+
+    result = await db.execute(
+        select(Chat)
+        .where(Chat.id == uuid.UUID(chat_id))
+        .options(selectinload(Chat.members).selectinload(ChatMember.user))
+    )
+    return result.scalar_one()
+
+async def update_chat_avatar(chat_id: str, user_id: str, avatar_url: str, db: AsyncSession) -> Chat:
+    chat = await get_chat(chat_id, user_id, db)
+
+    member = next((m for m in chat.members if str(m.user_id) == user_id), None)
+    if not member or member.role != "owner":
+        raise ChatError("Not enough permissions", status_code=403)
+
+    chat.avatar_url = avatar_url
     await db.commit()
 
     result = await db.execute(

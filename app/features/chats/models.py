@@ -5,6 +5,7 @@ from sqlalchemy import CheckConstraint, DateTime, ForeignKey, String, Text, Uniq
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
+from sqlalchemy.ext.hybrid import hybrid_property
 
 from app.core.db import Base
 
@@ -25,6 +26,11 @@ class Chat(Base):
     __table_args__ = (
         CheckConstraint("type IN ('direct', 'group')"),
     )
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.unread_count = 0
+        self.last_message_at = None
 
 
 class ChatMember(Base):
