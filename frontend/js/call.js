@@ -40,10 +40,13 @@ async function startCall() {
   const callee = chat.members.find(m => m.user.id !== currentUser.id);
   if (!callee) return;
 
-  const res = await fetch("/webrtc/rooms", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${getToken()}` },
-  });
+   const res = await fetch(`http://localhost:8000/api/v1/webrtc/rooms`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${getToken()}`,
+        'Content-Type': 'application/json'
+      },
+    });
   const { roomId } = await res.json();
 
   callState.roomId = roomId;
@@ -133,13 +136,40 @@ function onCallEnded(event) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 async function connectToRoom(roomId) {
-  return new Promise((resolve) => {
+  if (!roomId) {
+    console.error('[CALL] Cannot connect: roomId is undefined');
+    return;
+  }
+
+  return new Promise((resolve, reject) => {
     const wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    callState.callWs = new WebSocket(`${wsProto}//${location.host}/webrtc/ws/${roomId}`);
-    callState.callWs.onopen    = () => resolve();
-    callState.callWs.onmessage = (e) => handleSignalingMessage(JSON.parse(e.data));
-    callState.callWs.onerror   = () => callState.callWs.close();
-    callState.callWs.onclose   = () => { if (callState.active) cleanupCall(); };
+    // ✅ WebSocket URL тоже с /api/v1
+    const wsUrl = `${wsProto}//${location.hostname}:8000/api/v1/webrtc/ws/${roomId}`;
+
+    console.log('[CALL] Connecting to WebSocket:', wsUrl);
+
+    callState.callWs = new WebSocket(wsUrl);
+    callState.callWs.onopen = () => {
+      console.log('[CALL] WebSocket opened ✅');
+      resolve();
+    };
+    callState.callWs.onmessage = (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        console.log('[CALL] WS message:', data.type);
+        handleSignalingMessage(data);
+      } catch (err) {
+        console.error('[CALL] Parse error:', err);
+      }
+    };
+    callState.callWs.onerror = (err) => {
+      console.error('[CALL] WebSocket error:', err);
+      reject(err);
+    };
+    callState.callWs.onclose = () => {
+      console.log('[CALL] WebSocket closed');
+      if (callState.active) cleanupCall();
+    };
   });
 }
 
@@ -216,31 +246,63 @@ async function flushIceCandidates() {
 
 async function ensureLocalStream(video = false) {
   if (callState.localStream) return;
-  callState.localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video });
-  const localVideo = document.getElementById("call-local-video");
-  if (localVideo) localVideo.srcObject = callState.localStream;
+
+  try {
+    console.log('[CALL] Requesting media...');
+    const constraints = { audio: true, video: false }; // Только аудио для теста
+    callState.localStream = await navigator.mediaDevices.getUserMedia(constraints);
+
+    // ✅ Проверяем, что звук есть
+    const audioTrack = callState.localStream.getAudioTracks()[0];
+    if (audioTrack) {
+      console.log('[CALL] Audio track found, enabled:', audioTrack.enabled);
+      audioTrack.enabled = true; // Принудительно включаем
+    }
+
+    const localVideo = document.getElementById("call-local-video");
+    if (localVideo) {
+      localVideo.srcObject = callState.localStream;
+    }
+  } catch (error) {
+    console.error('[CALL] Media error:', error);
+    showProfileMsg(`Microphone error: ${error.message}`, 'error');
+    throw error;
+  }
 }
 
 function createPeerConnection() {
   callState.pc = new RTCPeerConnection(ICE_SERVERS);
 
-  callState.localStream.getTracks().forEach(t => callState.pc.addTrack(t, callState.localStream));
+  // Добавляем все треки из localStream
+  if (callState.localStream) {
+    callState.localStream.getTracks().forEach(track => {
+      console.log('[CALL] Adding track:', track.kind, track.enabled);
+      callState.pc.addTrack(track, callState.localStream);
+    });
+  }
 
   callState.pc.ontrack = (e) => {
-    const remoteVideo = document.getElementById("call-remote-video");
-    if (remoteVideo) remoteVideo.srcObject = e.streams[0];
-    showCallStatus("Подключено");
-  };
+  console.log('[CALL] ontrack triggered!', e.streams[0].getTracks());
+  const remoteVideo = document.getElementById("call-remote-video");
+  if (remoteVideo) {
+    remoteVideo.srcObject = e.streams[0];
+    // ✅ ВАЖНО: принудительно включаем звук
+    remoteVideo.muted = false;
+    remoteVideo.volume = 1;
+    remoteVideo.play().catch(e => console.error('Play error:', e));
+    console.log('[CALL] Remote video set, muted:', remoteVideo.muted);
+  }
+};
 
   callState.pc.onicecandidate = (e) => {
     if (e.candidate) {
+      console.log('[CALL] ICE candidate');
       sigSend({ type: "ice-candidate", candidate: e.candidate, targetId: callState.remotePeerId });
     }
   };
 
   callState.pc.onconnectionstatechange = () => {
-    const state = callState.pc.connectionState;
-    if (state === "failed" || state === "disconnected") showCallStatus("Потеря соединения...");
+    console.log('[CALL] Connection state:', callState.pc.connectionState);
   };
 }
 
@@ -270,12 +332,23 @@ let _micEnabled = true;
 let _videoEnabled = false;
 
 function toggleMic() {
-  if (!callState.localStream) return;
-  const track = callState.localStream.getAudioTracks()[0];
-  if (!track) return;
-  _micEnabled = !_micEnabled;
-  track.enabled = _micEnabled;
-  document.getElementById("call-btn-mic").textContent = _micEnabled ? "MIC: ON" : "MIC: OFF";
+  if (!callState.localStream) {
+    console.log('[CALL] No local stream');
+    return;
+  }
+
+  const audioTrack = callState.localStream.getAudioTracks()[0];
+  if (!audioTrack) {
+    console.log('[CALL] No audio track');
+    return;
+  }
+
+  audioTrack.enabled = !audioTrack.enabled;
+  const micBtn = document.getElementById("call-btn-mic");
+  if (micBtn) {
+    micBtn.textContent = audioTrack.enabled ? "MIC ON" : "MIC OFF";
+  }
+  console.log('[CALL] Mic enabled:', audioTrack.enabled);
 }
 
 async function toggleVideo() {
@@ -358,4 +431,13 @@ function showIncomingNotification(event) {
 
 function hideIncomingNotification() {
   document.getElementById("incoming-overlay").classList.remove("open");
+}
+
+if (typeof window !== 'undefined') {
+    window.startCall = startCall;
+    window.hangupCall = hangupCall;
+    window.toggleMic = toggleMic;
+    window.toggleVideo = toggleVideo;
+    window.acceptCall = acceptCall;
+    window.rejectCall = rejectCall;
 }

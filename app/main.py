@@ -57,7 +57,7 @@ app.include_router(messages_router, prefix="/api/v1/chats", tags=["messages"])
 
 app.include_router(realtime_router, tags=["realtime"])
 
-app.include_router(webrtc_router, prefix="/webrtc")
+app.include_router(webrtc_router, prefix="/api/v1/webrtc")
 
 @app.get("/health")
 async def health():
