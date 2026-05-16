@@ -50,6 +50,13 @@ async def get_blocks(
 ):
     return await service.get_blocks(str(current_user.id), db)
 
+@router.get("/blocked/check/{user_id}", response_model=bool)
+async def check_blocked_by(
+    user_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    return await service.is_blocked(str(current_user.id), user_id, db)
 
 @router.post("/blocked/{user_id}", response_model=BlockResponse, status_code=201)
 async def block_user(
@@ -71,5 +78,11 @@ async def unblock_user(
 ):
     try:
         await service.unblock_user(str(current_user.id), user_id, db)
+        # Уведомляем разблокированного
+        from app.core.ws_manager import ws_manager
+        await ws_manager.send_to_user(user_id, {
+            "type": "unblocked_by",
+            "user_id": str(current_user.id),
+        })
     except service.ContactError as e:
         raise HTTPException(status_code=e.status_code, detail=e.message)
