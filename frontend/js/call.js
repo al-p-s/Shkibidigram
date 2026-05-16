@@ -7,6 +7,18 @@ const ICE_SERVERS = {
   ],
 };
 
+const isLocalhost = window.location.hostname === 'localhost' ||
+                    window.location.hostname === '127.0.0.1';
+
+// Базовые URL
+const API_URL = isLocalhost
+  ? 'http://localhost:8000/api/v1/webrtc'
+  : '/api/v1/webrtc';
+
+const WS_URL = isLocalhost
+  ? 'ws://localhost:8000/api/v1/webrtc/ws'
+  : `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/api/v1/webrtc/ws`;
+
 let callState = {
   active: false,
   roomId: null,
@@ -40,7 +52,7 @@ async function startCall() {
   const callee = chat.members.find(m => m.user.id !== currentUser.id);
   if (!callee) return;
 
-   const res = await fetch(`/api/v1/webrtc/rooms`, {
+   const res = await fetch(`${API_URL}/rooms`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${getToken()}`,
@@ -143,7 +155,7 @@ async function connectToRoom(roomId) {
 
   return new Promise((resolve, reject) => {
     const wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${wsProto}//${location.host}/api/v1/webrtc/ws/${roomId}`;
+    const wsUrl = `${WS_URL}/${roomId}`;
 
     console.log('[CALL] Connecting to WebSocket:', wsUrl);
 
