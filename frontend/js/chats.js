@@ -116,11 +116,36 @@ async function openChat(chatId) {
     const callBtn = document.getElementById('btn-call');
     if (callBtn) {
         if (chat.type === 'direct') {
-            callBtn.style.display = 'block';
-            console.log('[UI] Call button shown for direct chat');
+            const other = chat.members.find(m => m.user.id !== currentUser.id);
+            if (other) {
+                // Проверяем, заблокировали ли мы пользователя
+                const iBlockedThem = blockedUsers && blockedUsers.some(b => b.blocked.id === other.user.id);
+
+                if (iBlockedThem) {
+                    // Мы заблокировали пользователя - скрываем кнопку
+                    callBtn.style.display = 'none';
+                } else {
+                    // Проверяем, не заблокировал ли нас пользователь
+                    try {
+                        const res = await fetch(`${API}/contacts/blocked/check/${other.user.id}`, {
+                            headers: { 'Authorization': `Bearer ${getToken()}` }
+                        });
+                        if (res.ok) {
+                            const isBlockedByThem = await res.json();
+                            callBtn.style.display = isBlockedByThem ? 'none' : 'block';
+                        } else {
+                            callBtn.style.display = 'block';
+                        }
+                    } catch (e) {
+                        console.error('Failed to check block status:', e);
+                        callBtn.style.display = 'block';
+                    }
+                }
+            } else {
+                callBtn.style.display = 'block';
+            }
         } else {
             callBtn.style.display = 'none';
-            console.log('[UI] Call button hidden for group chat');
         }
     }
 
@@ -738,6 +763,9 @@ function onBlockedBy(event) {
         document.getElementById('input-area').style.display = 'none';
         document.getElementById('blocked-notice-text').textContent = 'You have been blocked by this user.';
         document.getElementById('blocked-notice').style.display = 'flex';
+
+        const callBtn = document.getElementById('btn-call');
+        if (callBtn) callBtn.style.display = 'none';
     }
 }
 
@@ -748,6 +776,12 @@ function onUnblockedBy(event) {
     if (chat && chat.id === currentChatId) {
         document.getElementById('input-area').style.display = '';
         document.getElementById('blocked-notice').style.display = 'none';
+
+        const callBtn = document.getElementById('btn-call');
+        if (callBtn) {
+            const iBlockedThem = blockedUsers && blockedUsers.some(b => b.blocked?.id === event.user_id);
+            callBtn.style.display = iBlockedThem ? 'none' : 'block';
+        }
     }
 }
 

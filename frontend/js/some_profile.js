@@ -115,6 +115,13 @@ async function toggleBlock(userId, btn) {
             c.type === 'direct' && c.members.some(m => m.user.id === userId)
         );
         if (chat && chat.id === currentChatId) {
+            const callBtn = document.getElementById('btn-call');
+            if (callBtn) {
+                const nowBlocked = blockedUsers.some(b => b.blocked.id === userId);
+                callBtn.style.display = nowBlocked ? 'none' : 'block';
+            }
+        }
+        if (chat && chat.id === currentChatId) {
             updateChatInputState(chat);
         }
     } catch (e) {
