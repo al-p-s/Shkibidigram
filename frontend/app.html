@@ -203,12 +203,20 @@
             <input type="file" id="group-avatar-input" accept="image/jpeg,image/png" style="display:none;">
         </div>
         <div id="group-info-view">
+            <div id="group-info-description-block" style="display:none;">
+                <div class="group-description-label">Chat description</div>
+                <div id="group-info-description" class="group-description-text"></div>
+            </div>
             <div class="group-members-label" id="group-info-count"></div>
         </div>
         <div id="group-info-edit" style="display:none;">
             <div class="profile-field">
                 <label>Group name</label>
                 <input type="text" id="group-info-name-input">
+            </div>
+            <div class="profile-field">
+                <label>Description</label>
+                <input type="text" id="group-info-description-input" placeholder="Add a description...">
             </div>
             <div id="group-info-edit-msg" class="modal-msg"></div>
         </div>

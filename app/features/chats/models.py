@@ -19,6 +19,7 @@ class Chat(Base):
     avatar_url: Mapped[str | None] = mapped_column(Text)
     created_by: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("user.id"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     members: Mapped[list["ChatMember"]] = relationship(back_populates="chat", cascade="all, delete-orphan")
     messages: Mapped[list["Message"]] = relationship(back_populates="chat", cascade="all, delete-orphan")  # noqa

@@ -134,6 +134,9 @@ async def update_chat(chat_id: str, user_id: str, data: UpdateChatRequest, db: A
     if data.name is not None:
         chat.name = data.name
 
+    if data.description is not None:
+        chat.description = data.description
+
     await db.commit()
     await db.refresh(chat)
 
@@ -142,7 +145,9 @@ async def update_chat(chat_id: str, user_id: str, data: UpdateChatRequest, db: A
         .where(Chat.id == chat.id)
         .options(selectinload(Chat.members).selectinload(ChatMember.user))
     )
-    return result.scalar_one()
+    updated = result.scalar_one()
+    await _broadcast_chat_update(updated, db)
+    return updated
 
 
 async def leave_chat(chat_id: str, user_id: str, db: AsyncSession) -> None:
@@ -159,6 +164,26 @@ async def leave_chat(chat_id: str, user_id: str, db: AsyncSession) -> None:
     await db.delete(member)
     await db.commit()
 
+async def _broadcast_chat_update(chat: Chat, db: AsyncSession) -> None:
+    from app.core.ws_manager import ws_manager
+    from app.features.chats.schemas import ChatResponse
+    from app.core.db import AsyncSessionLocal
+
+    chat_id = chat.id
+
+    async with AsyncSessionLocal() as new_db:
+        result = await new_db.execute(
+            select(Chat)
+            .where(Chat.id == chat_id)
+            .options(selectinload(Chat.members).selectinload(ChatMember.user))
+        )
+        fresh_chat = result.scalar_one()
+        member_ids = [str(m.user_id) for m in fresh_chat.members]
+        payload = {
+            "type": "chat.updated",
+            "chat": ChatResponse.model_validate(fresh_chat).model_dump(mode="json"),
+        }
+        await ws_manager.broadcast_to_users(member_ids, payload)
 
 async def add_member(chat_id: str, user_id: str, new_user_id: str, db: AsyncSession) -> Chat:
     chat = await get_chat(chat_id, user_id, db)
@@ -186,7 +211,9 @@ async def add_member(chat_id: str, user_id: str, new_user_id: str, db: AsyncSess
         .where(Chat.id == uuid.UUID(chat_id))
         .options(selectinload(Chat.members).selectinload(ChatMember.user))
     )
-    return result.scalar_one()
+    chat = result.scalar_one()
+    await _broadcast_chat_update(chat, db)
+    return chat
 
 async def update_chat_avatar(chat_id: str, user_id: str, avatar_url: str, db: AsyncSession) -> Chat:
     chat = await get_chat(chat_id, user_id, db)
@@ -204,3 +231,59 @@ async def update_chat_avatar(chat_id: str, user_id: str, avatar_url: str, db: As
         .options(selectinload(Chat.members).selectinload(ChatMember.user))
     )
     return result.scalar_one()
+
+async def set_member_role(chat_id: str, user_id: str, target_id: str, role: str, db: AsyncSession) -> Chat:
+    if role not in ("admin", "member"):
+        raise ChatError("Invalid role, must be 'admin' or 'member'")
+
+    chat = await get_chat(chat_id, user_id, db)
+
+    member = next((m for m in chat.members if str(m.user_id) == user_id), None)
+    if not member or member.role != "owner":
+        raise ChatError("Only owner can change roles", status_code=403)
+
+    target = next((m for m in chat.members if str(m.user_id) == target_id), None)
+    if not target:
+        raise ChatError("User not in chat", status_code=404)
+
+    if target.role == "owner":
+        raise ChatError("Cannot change owner's role", status_code=403)
+
+    target.role = role
+    await db.commit()
+
+    result = await db.execute(
+        select(Chat)
+        .where(Chat.id == uuid.UUID(chat_id))
+        .options(selectinload(Chat.members).selectinload(ChatMember.user))
+    )
+    chat = result.scalar_one()
+    await _broadcast_chat_update(chat, db)
+    return chat
+
+async def remove_member(chat_id: str, user_id: str, target_id: str, db: AsyncSession) -> None:
+    chat = await get_chat(chat_id, user_id, db)
+
+    member = next((m for m in chat.members if str(m.user_id) == user_id), None)
+    if not member or member.role not in ("owner", "admin"):
+        raise ChatError("Not enough permissions", status_code=403)
+
+    if user_id == target_id:
+        raise ChatError("Use leave endpoint to leave the chat")
+
+    target = next((m for m in chat.members if str(m.user_id) == target_id), None)
+    if not target:
+        raise ChatError("User not in chat", status_code=404)
+
+    if target.role == "owner":
+        raise ChatError("Cannot remove owner", status_code=403)
+
+    await db.delete(target)
+    await db.commit()
+    result = await db.execute(
+        select(Chat)
+        .where(Chat.id == uuid.UUID(chat_id))
+        .options(selectinload(Chat.members).selectinload(ChatMember.user))
+    )
+    updated = result.scalar_one()
+    await _broadcast_chat_update(updated, db)
