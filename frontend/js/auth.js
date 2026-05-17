@@ -55,6 +55,12 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    if (password.length < 8) {  // добавить
+        showMsg('Password must be at least 8 characters', 'error');
+        btn.disabled = false;
+        return;
+    }
+
     try {
       const data = await api.auth.register({
         username:     document.getElementById('reg-username').value.trim(),

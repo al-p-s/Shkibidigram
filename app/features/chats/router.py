@@ -73,6 +73,31 @@ async def add_member(
     except service.ChatError as e:
         raise HTTPException(status_code=e.status_code, detail=e.message)
 
+@router.patch("/{chat_id}/members/{user_id}/role", response_model=ChatResponse)
+async def set_member_role(
+    chat_id: str,
+    user_id: str,
+    role: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        return await service.set_member_role(chat_id, str(current_user.id), user_id, role, db)
+    except service.ChatError as e:
+        raise HTTPException(status_code=e.status_code, detail=e.message)
+
+
+@router.delete("/{chat_id}/members/{user_id}", status_code=204)
+async def remove_member(
+    chat_id: str,
+    user_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        await service.remove_member(chat_id, str(current_user.id), user_id, db)
+    except service.ChatError as e:
+        raise HTTPException(status_code=e.status_code, detail=e.message)
 
 @router.delete("/{chat_id}/leave", status_code=204)
 async def leave_chat(

@@ -26,6 +26,7 @@ async function initApp() {
     wsOn('error', onWsError);
     wsOn('blocked_by', onBlockedBy);
     wsOn('unblocked_by', onUnblockedBy);
+    wsOn('chat.updated', onChatUpdated);
 
     await loadChats();
     await loadContacts();
@@ -394,15 +395,26 @@ document.getElementById('group-create').addEventListener('click', async () => {
 });
 
 function openGroupInfo(chat) {
-    const isOwner = chat.members.find(m => m.user.id === currentUser.id)?.role === 'owner';
+    const currentMember = chat.members.find(m => m.user.id === currentUser.id);
+    const isOwner = currentMember?.role === 'owner';
+    const isOwnerOrAdmin = isOwner || currentMember?.role === 'admin';
 
     document.getElementById('group-info-name').textContent = chat.name || 'Group';
     document.getElementById('group-info-count').textContent = `${chat.members.length} members`;
+    const descBlock = document.getElementById('group-info-description-block');
+    const descText = document.getElementById('group-info-description');
+    if (chat.description) {
+        descText.textContent = chat.description;
+        descBlock.style.display = '';
+    } else {
+        descBlock.style.display = 'none';
+    }
 
     document.getElementById('group-info-view').style.display = '';
     document.getElementById('group-info-edit').style.display = 'none';
     document.getElementById('group-info-save-btn').style.display = 'none';
-    document.getElementById('group-info-edit-btn').style.display = isOwner ? '' : 'none';
+    document.getElementById('group-info-edit-btn').style.display = isOwnerOrAdmin ? '' : 'none';
+    document.getElementById('group-info-add-members').style.display = isOwnerOrAdmin ? '' : 'none';
     document.getElementById('group-info-edit-msg').className = 'modal-msg';
 
     const avatarImg = document.getElementById('group-info-avatar-img');
@@ -481,15 +493,63 @@ function openGroupInfo(chat) {
                     ${name}
                     ${isCurrentUser ? '<span style="color:var(--muted);font-size:11px;"> (you)</span>' : ''}
                     ${m.role === 'owner' ? '<span class="member-owner-badge">owner</span>' : ''}
+                    ${m.role === 'admin' ? '<span class="member-admin-badge">admin</span>' : ''}
                 </div>
                 <div class="chat-preview">@${user.username}</div>
+            </div>
+            <div class="member-actions" style="display:flex;gap:4px;flex-shrink:0;">
+                ${isOwner && !isCurrentUser && m.role !== 'owner' ? `
+                    <button class="btn-role" data-id="${user.id}" data-role="${m.role}" title="${m.role === 'admin' ? 'Remove admin' : 'Make admin'}">
+                        ${m.role === 'admin' ? '★' : '☆'}
+                    </button>
+                ` : ''}
+                ${isOwnerOrAdmin && !isCurrentUser && m.role !== 'owner' ? `
+                    <button class="btn-remove-contact btn-kick" data-id="${user.id}" title="Remove">✕</button>
+                ` : ''}
             </div>
         `;
 
         if (!isCurrentUser) {
-            item.addEventListener('click', () => {
+            item.addEventListener('click', (e) => {
+                if (e.target.classList.contains('btn-kick') || e.target.classList.contains('btn-role')) return;
                 document.getElementById('group-info-modal').classList.remove('open');
                 openUserProfile(user.id);
+            });
+        }
+
+        const kickBtn = item.querySelector('.btn-kick');
+        if (kickBtn) {
+            kickBtn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                kickBtn.disabled = true;
+                try {
+                    await api.chats.removeMember(currentChatId, user.id);
+                    const updated = await api.chats.get(currentChatId);
+                    const idx = chats.findIndex(c => c.id === currentChatId);
+                    if (idx !== -1) chats[idx] = updated;
+                    openGroupInfo(updated);
+                } catch (err) {
+                    console.error('Failed to remove member:', err);
+                    kickBtn.disabled = false;
+                }
+            });
+        }
+
+        const roleBtn = item.querySelector('.btn-role');
+        if (roleBtn) {
+            roleBtn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                roleBtn.disabled = true;
+                const newRole = m.role === 'admin' ? 'member' : 'admin';
+                try {
+                    const updated = await api.chats.setRole(currentChatId, user.id, newRole);
+                    const idx = chats.findIndex(c => c.id === currentChatId);
+                    if (idx !== -1) chats[idx] = updated;
+                    openGroupInfo(updated);
+                } catch (err) {
+                    console.error('Failed to change role:', err);
+                    roleBtn.disabled = false;
+                }
             });
         }
 
@@ -622,6 +682,7 @@ document.getElementById('group-info-modal').addEventListener('click', (e) => {
 document.getElementById('group-info-edit-btn').addEventListener('click', () => {
     const chat = chats.find(c => c.id === currentChatId);
     document.getElementById('group-info-name-input').value = chat.name || '';
+    document.getElementById('group-info-description-input').value = chat.description || '';  // добавить
     document.getElementById('group-info-view').style.display = 'none';
     document.getElementById('group-info-edit').style.display = '';
     document.getElementById('group-info-edit-btn').style.display = 'none';
@@ -631,6 +692,7 @@ document.getElementById('group-info-edit-btn').addEventListener('click', () => {
 
 document.getElementById('group-info-save-btn').addEventListener('click', async () => {
     const name = document.getElementById('group-info-name-input').value.trim();
+    const description = document.getElementById('group-info-description-input').value.trim();
     const msgEl = document.getElementById('group-info-edit-msg');
     const btn = document.getElementById('group-info-save-btn');
 
@@ -644,7 +706,7 @@ document.getElementById('group-info-save-btn').addEventListener('click', async (
     btn.textContent = 'Saving...';
 
     try {
-        const updated = await api.chats.update(currentChatId, { name });
+        const updated = await api.chats.update(currentChatId, { name, description: description || null });
         const idx = chats.findIndex(c => c.id === currentChatId);
         if (idx !== -1) chats[idx] = updated;
         renderChatList();
@@ -782,6 +844,45 @@ function onUnblockedBy(event) {
             const iBlockedThem = blockedUsers && blockedUsers.some(b => b.blocked?.id === event.user_id);
             callBtn.style.display = iBlockedThem ? 'none' : 'block';
         }
+    }
+}
+
+function onChatUpdated(event) {
+    console.log('chat.updated received:', event);
+    console.log('looking for chat id:', event.chat.id);
+    console.log('chats ids:', chats.map(c => c.id));
+    const idx = chats.findIndex(c => c.id === event.chat.id);
+    console.log('found idx:', idx);
+    if (idx !== -1) {
+        // Сохраняем unread_count и last_message_at
+        event.chat.unread_count = chats[idx].unread_count || 0;
+        event.chat.last_message_at = chats[idx].last_message_at;
+        chats[idx] = event.chat;
+    }
+    renderChatList();
+
+    // Если это открытый чат — обновляем хедер и инфо
+    if (event.chat.id === currentChatId) {
+        const chat = chats[idx];
+        if (chat) {
+            document.getElementById('chat-header-name').textContent = getChatName(chat);
+            document.getElementById('chat-header-status').textContent =
+                chat.type === 'group' ? `${chat.members.length} members` : '';
+        }
+    }
+
+    // Если открыто окно группы — обновляем его
+    if (event.chat.id === currentChatId) {
+        const modal = document.getElementById('group-info-modal');
+        if (modal) {
+            console.log('modal open:', modal.classList.contains('open'), 'members:', event.chat.members?.length);
+            if (modal.classList.contains('open')) {
+                openGroupInfo(event.chat);
+            }
+        }
+        document.getElementById('chat-header-name').textContent = getChatName(event.chat);
+        document.getElementById('chat-header-status').textContent =
+            event.chat.type === 'group' ? `${event.chat.members.length} members` : '';
     }
 }
 
