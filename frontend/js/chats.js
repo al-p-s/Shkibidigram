@@ -202,11 +202,6 @@ function onNewMessage(event) {
     renderChatList();
 }
 
-// NEW CHAT MODAL
-document.getElementById('new-chat-btn').addEventListener('click', () => {
-  document.getElementById('new-chat-modal').classList.add('open');
-});
-
 document.getElementById('modal-cancel').addEventListener('click', () => {
     document.getElementById('new-chat-modal').classList.remove('open');
 });
