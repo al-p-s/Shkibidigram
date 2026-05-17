@@ -25,6 +25,18 @@ async def handle_event(user_id: str, event: dict, websocket: WebSocket) -> None:
     elif event_type == "message.delete":
         await _handle_delete(user_id, event)
 
+    elif event_type == "call.invite":
+        await _handle_call_invite(user_id, event)
+
+    elif event_type == "call.accept":
+        await _handle_call_accept(user_id, event)
+
+    elif event_type == "call.reject":
+        await _handle_call_reject(user_id, event)
+
+    elif event_type == "call.end":
+        await _handle_call_end(user_id, event)
+
     else:
         await websocket.send_text(json.dumps({"error": f"unknown event type: {event_type}"}))
 
@@ -172,3 +184,81 @@ async def _handle_delete(user_id: str, event: dict) -> None:
 
         except Exception:
             pass
+
+
+async def _handle_call_invite(user_id: str, event: dict) -> None:
+    """
+    Инициатор звонка отправляет:
+    { type: "call.invite", chat_id: "...", room_id: "...", callee_id: "..." }
+    Сервер пересылает вызываемому уведомление с данными для подключения.
+    """
+    callee_id = event.get("callee_id")
+    room_id = event.get("room_id")
+    chat_id = event.get("chat_id")
+    caller_name = event.get("caller_name", "")
+
+    if not callee_id or not room_id:
+        return
+
+    await ws_manager.send_to_user(callee_id, {
+        "type": "call.incoming",
+        "room_id": room_id,
+        "chat_id": chat_id,
+        "caller_id": user_id,
+        "caller_name": caller_name,
+    })
+
+
+async def _handle_call_accept(user_id: str, event: dict) -> None:
+    """
+    Вызываемый принял звонок:
+    { type: "call.accept", room_id: "...", caller_id: "..." }
+    Сервер уведомляет инициатора что можно подключаться.
+    """
+    caller_id = event.get("caller_id")
+    room_id = event.get("room_id")
+
+    if not caller_id or not room_id:
+        return
+
+    await ws_manager.send_to_user(caller_id, {
+        "type": "call.accepted",
+        "room_id": room_id,
+        "callee_id": user_id,
+    })
+
+
+async def _handle_call_reject(user_id: str, event: dict) -> None:
+    """
+    Вызываемый отклонил звонок:
+    { type: "call.reject", room_id: "...", caller_id: "..." }
+    """
+    caller_id = event.get("caller_id")
+    room_id = event.get("room_id")
+
+    if not caller_id or not room_id:
+        return
+
+    await ws_manager.send_to_user(caller_id, {
+        "type": "call.rejected",
+        "room_id": room_id,
+        "callee_id": user_id,
+    })
+
+
+async def _handle_call_end(user_id: str, event: dict) -> None:
+    """
+    Любой из участников завершил звонок:
+    { type: "call.end", room_id: "...", peer_id: "..." }
+    """
+    peer_id = event.get("peer_id")
+    room_id = event.get("room_id")
+
+    if not peer_id or not room_id:
+        return
+
+    await ws_manager.send_to_user(peer_id, {
+        "type": "call.ended",
+        "room_id": room_id,
+        "by_user_id": user_id,
+    })

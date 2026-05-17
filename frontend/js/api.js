@@ -1,4 +1,4 @@
-const API = '/api/v1';
+const API = `${location.origin}/api/v1`;
 
 function getToken() { return localStorage.getItem('access_token'); }
 function setTokens(access, refresh) {
@@ -37,7 +37,6 @@ const api = {
     me:     ()       => request('GET', '/users/me'),
     update: (body)   => request('PATCH', '/users/me', body),
     search: (username) => request('GET', `/users/search?username=${username}`),
-    getProfile: (userId) => request('GET', `/users/${userId}/public`),
   },
   contacts: {
     list:   ()   => request('GET', '/contacts/'),
