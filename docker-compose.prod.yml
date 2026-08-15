@@ -8,14 +8,10 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5433:5432"
 
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    ports:
-      - "6379:6379"
 
   minio:
     image: minio/minio:latest
@@ -26,17 +22,12 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     volumes:
       - minio_data:/data
-    ports:
-      - "9000:9000"
-      - "9001:9001"
 
   app:
     build: .
     image: shkibidigram-app:latest
     restart: unless-stopped
     env_file: .env
-    ports:
-      - "8000:8000"
     depends_on:
       - db
       - redis
@@ -46,12 +37,12 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: shkibidigram-nginx
     restart: unless-stopped
     ports:
       - "80:80"
+      - "443:443"
     volumes:
-      - ./frontend/nginx.dev.conf:/etc/nginx/conf.d/default.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
       - app
 

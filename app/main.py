@@ -1,12 +1,23 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.core.redis import close_redis, init_redis
 from app.core.storage import init_buckets
 
+from app.features.auth.router import router as auth_router
+from app.features.users.router import router as users_router
+from app.features.contacts.router import router as contacts_router
+from app.features.chats.router import router as chats_router
+from app.features.messages.router import router as messages_router
+from app.features.realtime.router import router as realtime_router
+from app.features.calls.router import router as webrtc_router
+
+BASE_DIR = Path(__file__).parent.parent
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -34,11 +45,26 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# routers — по мере реализации фич
-# from app.features.auth.router import router as auth_router
-# app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
+app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
 
+app.include_router(users_router, prefix="/api/v1/users", tags=["users"])
+
+app.include_router(contacts_router, prefix="/api/v1/contacts", tags=["contacts"])
+
+app.include_router(chats_router, prefix="/api/v1/chats", tags=["chats"])
+
+app.include_router(messages_router, prefix="/api/v1/chats", tags=["messages"])
+
+app.include_router(realtime_router, tags=["realtime"])
+
+app.include_router(webrtc_router, prefix="/api/v1/webrtc")
 
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+app.mount(
+    "/",
+    StaticFiles(directory=BASE_DIR / "frontend", html=True),
+    name="frontend"
+)

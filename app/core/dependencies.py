@@ -1,9 +1,13 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from app.core.db import get_db
 from app.core.security import decode_token
+from app.features.users.models import User
+
 
 bearer = HTTPBearer()
 
@@ -25,8 +29,6 @@ async def get_current_user(
     user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
-    from app.features.users.models import User
-    from sqlalchemy import select
 
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()

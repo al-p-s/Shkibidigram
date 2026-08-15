@@ -2,8 +2,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
-
+    model_config = SettingsConfigDict(env_file=".env", case_sensitive=False, extra="ignore")
     # App
     app_secret_key: str
     app_debug: bool = False
@@ -28,5 +27,8 @@ class Settings(BaseSettings):
     jwt_access_token_expire_minutes: int = 60
     jwt_refresh_token_expire_days: int = 30
 
+    # WebRTC
+    webrtc_port: int = 8001
+    stun_servers: str = "stun:stun.l.google.com:19302"
 
 settings = Settings()

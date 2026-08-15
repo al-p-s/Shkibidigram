@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shkibidigram</title>
+  <link rel="stylesheet" href="css/auth.css">
+</head>
+<body>
+  <div class="auth-wrapper">
+    <div class="auth-box">
+      <div class="logo">Shkibi<span>.</span></div>
+      <div class="tagline">$ sudo rm -rf /*</div>
+
+      <div class="tabs">
+        <button class="tab-btn active" data-panel="login-form">Login</button>
+        <button class="tab-btn" data-panel="register-form">Register</button>
+      </div>
+
+      <div id="msg" class="msg"></div>
+
+      <!-- LOGIN -->
+      <form id="login-form" class="form-panel active">
+        <div class="field">
+          <label>Email</label>
+          <input id="login-email" type="email" placeholder="your@email.com" required>
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input id="login-password" type="password" placeholder="********" required>
+        </div>
+        <button class="btn" type="submit">LET ME IN</button>
+      </form>
+
+      <!-- REGISTER -->
+      <form id="register-form" class="form-panel">
+        <div class="field">
+          <label>Username</label>
+          <input id="reg-username" type="text" placeholder="Find me by ..." required>
+        </div>
+        <div class="field">
+          <label>Display name</label>
+          <input id="reg-display" type="text" placeholder="Call me ...">
+        </div>
+        <div class="field">
+          <label>Email</label>
+          <input id="reg-email" type="email" placeholder="your@email.com" required>
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input id="reg-password" type="password" placeholder="********" required>
+        </div>
+        <div class="field">
+          <label>Confirm password</label>
+          <input id="reg-confirm" type="password" placeholder="********" required>
+        </div>
+        <button class="btn" type="submit">CREATE ACCOUNT</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+</body>
+</html>

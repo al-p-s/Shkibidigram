@@ -6,7 +6,7 @@
 
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/)
 - [Git](https://git-scm.com/)
-- Python 3.12 (для генерации миграций локально)
+- Python 3.11-12 (для генерации миграций локально)
 
 ## Быстрый старт (Quick fuck)
 
@@ -26,9 +26,15 @@ source ~/.bashrc
 make --version
 
 # 4. Поднять контейнеры
-docker compose up -d
+make up
 
-# 5. Накатить миграции
+# 5. Подтянуть миграции 1 раз
+make migrate
+
+# 6. Создать миграцию
+make makemigrations msg="init"
+
+# 7. Подтянуть миграции 2 раз
 make migrate
 ```
 
@@ -36,12 +42,14 @@ make migrate
 
 ## Команды
 
-| Команда | Что делает |
-|---|---|
-| `docker compose up -d` | Поднять все сервисы |
-| `docker compose down` | Остановить |
-| `make migrate` | Накатить миграции |
-| `make makemigrations msg="..."` | Создать миграцию |
+| Команда                         | Что делает                                               |
+|---------------------------------|----------------------------------------------------------|
+| `make up`                       | Поднять все сервисы                                      |
+| `make build`                    | Ребилд                                                   |
+| `make down`                     | Остановить                                               |
+| `make destroy`                  | Остановить докер + снести все volumes (по сути ресет БД) |
+| `make migrate`                  | Накатить миграции                                        |
+| `make makemigrations msg="..."` | Создать миграцию                                         |
 
 ## Сервисы
 

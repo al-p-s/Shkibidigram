@@ -1,0 +1,301 @@
+<!-- app.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover, interactive-widget=resizes-content">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0a0a0f">
+    <title>Shkibidigram</title>
+    <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<div id="app">
+    <div id="topbar">
+        <button class="burger-btn" id="burger-btn">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <div class="logo">Shkibi<span>.</span></div>
+        <div class="topbar-spacer"></div>
+        <span id="current-user"></span>
+        <button class="btn-icon" id="profile-btn">Profile</button>
+        <button class="btn-icon" id="logout-btn">logout</button>
+    </div>
+
+    <div id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-tabs">
+                <button class="sidebar-tab active" data-tab="chats">Chats</button>
+                <button class="sidebar-tab" data-tab="contacts">Contacts</button>
+            </div>
+            <button class="btn-new" id="new-chat-btn">+ New</button>
+        </div>
+        <div id="chat-list"></div>
+        <div id="contact-list" style="display:none;"></div>
+    </div>
+
+    <div id="main">
+        <div id="empty-state">
+            <div class="big">://</div>
+            <div>select a chat or start a new one</div>
+        </div>
+
+    <!-- chat view -->
+    <div id="chat-view" style="display:none; flex-direction:column; flex:1; overflow:hidden;">
+      <div id="chat-header">
+        <div>
+          <div id="chat-header-name"></div>
+          <div id="chat-header-status"></div>
+        </div>
+        <div class="topbar-spacer"></div>
+        <div id="typing-indicator">typing...</div>
+        <!-- [my branch] кнопка звонка — только для direct чатов -->
+        <button class="btn-call" id="btn-call" onclick="startCall()" style="display:none;">
+          &#9990; CALL
+        </button>
+      </div>
+
+            <div id="messages-wrap"></div>
+
+            <div id="blocked-notice" style="display:none;">
+                <span id="blocked-notice-text"></span>
+            </div>
+
+            <div id="input-area">
+                <div id="input-row">
+                    <button class="btn-attach" id="attach-btn" title="Attach file">➕</button>
+                    <input type="file" id="file-input" style="display:none;">
+                    <textarea id="msg-input" placeholder="Type a message... (Enter to send)" rows="1"></textarea>
+                    <button id="send-btn">SEND</button>
+                </div>
+                <div id="msg-counter" style="font-size:11px;color:var(--muted);text-align:right;padding:2px 0;">0 / 2000</div>
+            </div>
+        </div>
+    </div>
+    <div class="mobile-overlay" id="mobile-overlay"></div>
+</div>
+
+<!-- ── ВХОДЯЩИЙ ЗВОНОК (my branch) ──────────────────────────────────────── -->
+<div class="modal-overlay" id="incoming-overlay">
+  <div class="modal incoming-modal">
+    <div class="incoming-icon">&#9990;</div>
+    <div class="incoming-title">Входящий звонок</div>
+    <div class="incoming-caller" id="incoming-caller-name"></div>
+    <div class="modal-actions">
+      <button class="btn-reject"  onclick="rejectCall()">ОТКЛОНИТЬ</button>
+      <button class="btn-primary" onclick="acceptCall()">ПРИНЯТЬ</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── ОКНО ЗВОНКА (my branch) ──────────────────────────────────────────── -->
+<div class="call-overlay" id="call-overlay">
+  <div class="call-window">
+
+    <div class="call-header">
+      <span class="call-remote-name" id="call-remote-name"></span>
+      <span class="call-status" id="call-status"></span>
+    </div>
+
+    <div class="call-videos">
+      <video id="call-remote-video" autoplay playsinline></video>
+      <video id="call-local-video"  autoplay muted playsinline></video>
+    </div>
+
+    <div class="call-controls">
+      <button class="call-btn" id="call-btn-mic"   onclick="toggleMic()">MIC OFF</button>
+      <button class="call-btn" id="call-btn-video" onclick="toggleVideo()">CAM ON</button>
+      <button class="call-btn call-btn-end"         onclick="hangupCall()">END</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── NEW CHAT MODAL ────────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="new-chat-modal">
+    <div class="modal">
+        <h3>New direct chat</h3>
+        <input id="modal-username" type="text" placeholder="Enter username...">
+        <div class="modal-msg" id="modal-msg"></div>
+        <div class="modal-actions">
+            <button class="btn-secondary" id="modal-cancel">Cancel</button>
+            <button class="btn-primary" id="modal-start">Start chat</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="profile-modal">
+    <div class="modal profile-modal">
+        <h3>Your Profile</h3>
+
+        <div class="profile-avatar" id="profile-avatar">
+            <img id="profile-avatar-img" src="" alt="avatar">
+            <button class="btn-avatar" id="avatar-upload-btn" style="display:none;">
+                Change avatar
+            </button>
+            <input type="file" id="avatar-upload" accept="image/jpeg,image/png" style="display:none">
+        </div>
+
+        <div class="profile-field">
+            <label>Username</label>
+            <input type="text" id="profile-username" readonly disabled class="readonly-field">
+        </div>
+
+        <div class="profile-field">
+            <label>Email</label>
+            <input type="email" id="profile-email" readonly disabled class="readonly-field">
+        </div>
+
+        <div class="profile-field">
+            <label>Display name</label>
+            <input type="text" id="profile-display-name" readonly disabled>
+        </div>
+
+        <div class="profile-field">
+            <label>Status text</label>
+            <input type="text" id="profile-status-text" readonly disabled>
+        </div>
+
+        <div class="profile-field">
+            <label>Member since</label>
+            <input type="text" id="profile-created-at" readonly disabled class="readonly-field">
+        </div>
+
+        <div id="profile-edit-status" class="edit-status" style="display: none;">
+            Edit mode is ON - you can edit fields
+        </div>
+
+        <div id="profile-msg" class="modal-msg"></div>
+
+        <div class="modal-actions">
+            <button class="btn-secondary" id="profile-cancel">Cancel</button>
+            <button class="btn-primary" id="profile-edit-btn">Edit</button>
+            <button class="btn-primary" id="profile-save" style="display:none;">Save changes</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="user-profile-modal">
+    <div class="modal profile-modal">
+        <h3>Shkibi Profile</h3>
+
+        <div class="profile-avatar" id="user-profile-avatar-section">
+            <img id="user-profile-avatar-img" src="" alt="avatar">
+        </div>
+
+        <div class="profile-field">
+            <label>Username</label>
+            <input type="text" id="user-profile-username" readonly disabled class="readonly-field">
+        </div>
+
+        <div class="profile-field">
+            <label>Display name</label>
+            <input type="text" id="user-profile-display-name" readonly disabled class="readonly-field">
+        </div>
+
+        <div class="profile-field">
+            <label>Status</label>
+            <input type="text" id="user-profile-status-text" readonly disabled class="readonly-field">
+        </div>
+
+        <div class="modal-actions">
+            <button class="btn-primary" id="user-profile-add-contact" style="display:none;">Add to contacts</button>
+            <button class="btn-danger" id="user-profile-block-btn" style="display:none;">Block</button>
+            <button class="btn-secondary" id="user-profile-close">Close</button>
+        </div>
+        <div id="user-profile-msg" class="modal-msg"></div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="chat-type-modal">
+    <div class="modal">
+        <h3>New chat</h3>
+        <div class="modal-actions">
+            <button class="btn-secondary" id="type-direct">Direct</button>
+            <button class="btn-secondary" id="type-group">Group</button>
+        </div>
+        <button class="btn-secondary" id="type-cancel">Cancel</button>
+    </div>
+</div>
+
+<div class="modal-overlay" id="new-group-modal">
+    <div class="modal">
+        <h3>New group chat</h3>
+        <input id="group-name-input" type="text" placeholder="Group name...">
+        <div class="group-members-label">Select members</div>
+        <div id="group-contacts-list"></div>
+        <div id="group-selected-count" class="group-selected-count">0 selected</div>
+        <div id="group-msg" class="modal-msg"></div>
+        <div class="modal-actions">
+            <button class="btn-secondary" id="group-cancel">Cancel</button>
+            <button class="btn-primary" id="group-create">Create group</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="group-info-modal">
+    <div class="modal profile-modal">
+        <h3 id="group-info-name"></h3>
+        <div class="profile-avatar" id="group-info-avatar-section">
+            <img id="group-info-avatar-img" src="" alt="avatar" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid var(--accent);background:var(--surface2);">
+            <button class="btn-avatar" id="group-avatar-upload-btn" style="display:none;">Change avatar</button>
+            <input type="file" id="group-avatar-input" accept="image/jpeg,image/png" style="display:none;">
+        </div>
+        <div id="group-info-view">
+            <div id="group-info-description-block" style="display:none;">
+                <div class="group-description-label">Chat description</div>
+                <div id="group-info-description" class="group-description-text"></div>
+            </div>
+            <div class="group-members-label" id="group-info-count"></div>
+        </div>
+        <div id="group-info-edit" style="display:none;">
+            <div class="profile-field">
+                <label>Group name</label>
+                <input type="text" id="group-info-name-input">
+            </div>
+            <div class="profile-field">
+                <label>Description</label>
+                <input type="text" id="group-info-description-input" placeholder="Add a description...">
+            </div>
+            <div id="group-info-edit-msg" class="modal-msg"></div>
+        </div>
+        <div id="group-info-members" style="max-height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:2px;"></div>
+        <div class="modal-actions">
+            <button class="btn-secondary" id="group-info-close">Close</button>
+            <button class="btn-primary" id="group-info-edit-btn">Edit</button>
+            <button class="btn-primary" id="group-info-save-btn" style="display:none;">Save</button>
+            <button class="btn-primary" id="group-info-add-members">Add members</button>
+            <button class="btn-danger" id="group-info-leave">Leave chat</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="add-members-modal">
+    <div class="modal">
+        <h3>Add members</h3>
+        <div class="group-members-label">Select from contacts</div>
+        <div id="add-members-list" style="max-height:260px;overflow-y:auto;border:1px solid var(--border);border-radius:2px;padding:6px;"></div>
+        <div id="add-members-selected" class="group-selected-count">0 selected</div>
+        <div id="add-members-msg" class="modal-msg"></div>
+        <div class="modal-actions">
+            <button class="btn-secondary" id="add-members-cancel">Back</button>
+            <button class="btn-primary" id="add-members-confirm">Add</button>
+        </div>
+    </div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/ws.js"></script>
+<script src="js/chats.js"></script>
+<script src="js/messages.js"></script>
+<script src="js/profile.js"></script>
+<script src="js/some_profile.js"></script>
+<script src="js/contacts.js"></script>
+<div id="toast" class="toast"></div>
+<script src="js/mobile.js"></script>
+<script src="js/call.js"></script>
+</body>
+</html>

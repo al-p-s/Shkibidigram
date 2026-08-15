@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>WebRTC Test</title>
+  <style>
+    body { font-family: sans-serif; max-width: 900px; margin: 40px auto; padding: 0 20px; }
+    video { width: 100%; border-radius: 8px; background: #111; }
+    .videos { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 20px 0; }
+    .controls { display: flex; gap: 12px; flex-wrap: wrap; }
+    button { padding: 10px 20px; border: none; border-radius: 6px;
+             background: #5B5BD6; color: white; cursor: pointer; }
+    button:disabled { opacity: 0.4; cursor: default; }
+    #log { background: #f5f5f5; border-radius: 8px; padding: 16px;
+           font-family: monospace; font-size: 13px; height: 200px;
+           overflow-y: auto; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h2>WebRTC Sandbox</h2>
+  <div>
+    Room: <input id="room-id" placeholder="room-id" style="padding:8px;border-radius:4px;border:1px solid #ccc">
+    <button onclick="joinRoom()">Войти</button>
+    <button onclick="createRoom()">Создать комнату</button>
+  </div>
+
+  <div class="videos">
+    <div><p>Вы</p><video id="local-video" autoplay muted playsinline></video></div>
+    <div><p>Собеседник</p><video id="remote-video" autoplay playsinline></video></div>
+  </div>
+
+  <div class="controls">
+    <button id="btn-call" onclick="startCall()" disabled>Позвонить</button>
+    <button onclick="toggleMic()">Микрофон вкл/выкл</button>
+    <button onclick="hangup()">Завершить</button>
+  </div>
+
+  <div id="log"></div>
+
+<script>
+const ICE_SERVERS = {
+  iceServers: [
+    { urls: "stun:stun.l.google.com:19302" },
+    { urls: "stun:stun1.l.google.com:19302" }
+  ]
+};
+
+let ws, pc, localStream;
+let myPeerId = null, remotePeerId = null;
+
+function log(msg) {
+  const el = document.getElementById("log");
+  el.innerHTML += `<div>[${new Date().toLocaleTimeString()}] ${msg}</div>`;
+  el.scrollTop = el.scrollHeight;
+}
+
+async function createRoom() {
+  const res = await fetch("/webrtc/rooms", { method: "POST" });
+  const data = await res.json();
+  document.getElementById("room-id").value = data.roomId;
+  log(`Создана комната: ${data.roomId}`);
+}
+
+async function joinRoom() {
+  const roomId = document.getElementById("room-id").value.trim();
+  if (!roomId) return alert("Введите ID комнаты");
+
+  localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+  document.getElementById("local-video").srcObject = localStream;
+
+  ws = new WebSocket(`ws://localhost:8000/webrtc/ws/${roomId}`);
+
+  ws.onopen = () => log("WebSocket подключён");
+  ws.onmessage = (e) => handleSignal(JSON.parse(e.data));
+  ws.onerror = (e) => log("WS ошибка: " + e);
+  ws.onclose = () => log("WS закрыт");
+}
+
+function handleSignal(msg) {
+  log(`← ${msg.type}${msg.fromId ? " от " + msg.fromId : ""}`);
+
+  switch (msg.type) {
+    // ← Получаем свой id от сервера сразу после подключения
+    case "self-id":
+      myPeerId = msg.peerId;
+      log(`Мой peer id: ${myPeerId}`);
+      break;
+
+    case "peer-joined":
+      // msg.peers — список тех, кто уже был в комнате до нас
+      // msg.peerId — id того, кто только что зашёл
+      if (msg.peerId !== myPeerId && msg.peers.includes(myPeerId)) {
+        // Мы уже в комнате, вошёл новый участник
+        remotePeerId = msg.peerId;
+        document.getElementById("btn-call").disabled = false;
+        log(`Участник ${remotePeerId} вошёл в комнату`);
+      } else if (msg.peers.length > 0) {
+        // Мы только что вошли, в комнате уже есть кто-то
+        remotePeerId = msg.peers[0];
+        document.getElementById("btn-call").disabled = false;
+        log(`В комнате уже есть участник: ${remotePeerId}`);
+      }
+      break;
+
+    case "peer-left":
+      log(`Участник ${msg.peerId} вышел`);
+      document.getElementById("remote-video").srcObject = null;
+      document.getElementById("btn-call").disabled = true;
+      remotePeerId = null;
+      break;
+
+    case "offer":
+      remotePeerId = msg.fromId;
+      handleOffer(msg.sdp);
+      break;
+
+    case "answer":
+      pc.setRemoteDescription(new RTCSessionDescription({ type: "answer", sdp: msg.sdp }));
+      break;
+
+    case "ice-candidate":
+      pc.addIceCandidate(new RTCIceCandidate(msg.candidate)).catch(console.error);
+      break;
+  }
+}
+
+function createPeerConnection() {
+  pc = new RTCPeerConnection(ICE_SERVERS);
+
+  localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+
+  pc.ontrack = (e) => {
+    document.getElementById("remote-video").srcObject = e.streams[0];
+  };
+
+  pc.onicecandidate = (e) => {
+    if (e.candidate) {
+      send({ type: "ice-candidate", candidate: e.candidate, targetId: remotePeerId });
+    }
+  };
+
+  pc.oniceconnectionstatechange = () => log(`ICE state: ${pc.iceConnectionState}`);
+  pc.onsignalingstatechange = () => log(`Signaling state: ${pc.signalingState}`);
+}
+
+async function startCall() {
+  createPeerConnection();
+  const offer = await pc.createOffer();
+  await pc.setLocalDescription(offer);
+  send({ type: "offer", sdp: offer.sdp, targetId: remotePeerId });
+}
+
+async function handleOffer(sdp) {
+  createPeerConnection();
+  await pc.setRemoteDescription(new RTCSessionDescription({ type: "offer", sdp }));
+  const answer = await pc.createAnswer();
+  await pc.setLocalDescription(answer);
+  send({ type: "answer", sdp: answer.sdp, targetId: remotePeerId });
+}
+
+function send(data) {
+  log(`→ ${data.type}`);
+  ws.send(JSON.stringify(data));
+}
+
+function toggleMic() {
+  if (!localStream) return;
+  const track = localStream.getAudioTracks()[0];
+  if (track) track.enabled = !track.enabled;
+  log(`Микрофон: ${track.enabled ? "вкл" : "выкл"}`);
+}
+
+function hangup() {
+  if (pc) { pc.close(); pc = null; }
+  if (ws) { ws.close(); ws = null; }
+  document.getElementById("remote-video").srcObject = null;
+  document.getElementById("btn-call").disabled = true;
+  log("Звонок завершён");
+}
+</script>
+</body>
+</html>
